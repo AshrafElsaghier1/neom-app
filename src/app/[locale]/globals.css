@@ -2,11 +2,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-@theme {
-  /* --color-main-color: #b89535; */
-  --color-secondary: blue;
-}
-/* Create a new custom CSS class */
+
 @layer components {
   .title {
     @apply text-shadow-lg;
@@ -15,7 +11,7 @@
     @apply no-underline;
   }
 }
-/* Extend the base styles for all  */
+
 @layer base {
   h1 {
     @apply text-6xl font-bold underline;
@@ -68,7 +64,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-main-color: #b89535;
+  --color-main: #b89535;
+  --color-secondary: #91939f;
 }
 
 :root {
@@ -147,4 +144,15 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-main);
+  border-radius: 8px;
 }

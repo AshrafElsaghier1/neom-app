@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Globe, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,10 +53,9 @@ export function LocaleSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-1  bg-transparent   shadow-none "
+          className="gap-[2px]  has-[>svg]:px-0 has-[>svg]:pl-[5px] has-[>svg]:pr-[2px] bg-transparent   shadow-none "
           aria-label="Change language"
         >
-          {/* <span className="hidden sm:inline">{currentLocaleConfig.name}</span> */}
           <Image
             src={currentLocaleConfig.flag}
             alt="flag-lang-icon"
@@ -70,7 +69,6 @@ export function LocaleSwitcher() {
       <DropdownMenuContent align="end" className="min-w-[180px]">
         {routing.locales.map((locale) => {
           const config = localeConfig[locale];
-
           return (
             <DropdownMenuItem
               key={locale}
