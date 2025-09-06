@@ -11,7 +11,7 @@ const LogoutButton = () => {
       callbackUrl: "/auth/signin",
     });
   };
-  const t = useTranslations("loginpage");
+  const t = useTranslations("loginPage");
   return (
     <Button variant={"transparent"} onClick={handleLogout} className="text-lg">
       <LogOutIcon className="mr-1 text-main" />
