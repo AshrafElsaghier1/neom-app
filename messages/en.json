@@ -1,5 +1,17 @@
 {
-  "login-page": {
-    "title": "Login"
+  "loginPage": {
+    "Login_success_key": "Login successful! Redirecting...",
+    "Login_error_key": "An unexpected error occurred. Please try again.",
+    "Invalid_email_or_password_key": "Invalid email or password. Please try again.",
+    "Log_into_your_account_key": "Log into your account",
+    "Welcome_back_key": "Welcome back! Please enter your personal information to continue.",
+    "Enter_email_key": "Enter your email",
+    "email_key": "Email",
+    "Password_key": "Password",
+    "Signing_In_key": "Signing In...",
+    "Sign_In_key": "Sign In",
+    "email_is_required_key": "email is required",
+    "Password_is_required_key": "Password is required",
+    "Logout_key": "log out"
   }
 }

@@ -1,5 +1,3 @@
- 
-
 "use client";
 import {
   SidebarGroup,
@@ -42,9 +40,8 @@ import { useState } from "react";
 const SideBarItems = () => {
   const pathname = usePathname();
   const currentRoute = "/" + pathname.split("/").slice(2).join("/");
-  const t = useTranslations("sidebar");
+  // const t = useTranslations("sidebar");
 
-  // 👇 track which parent menu is open
   const [openItem, setOpenItem] = useState(null);
 
   const items = [

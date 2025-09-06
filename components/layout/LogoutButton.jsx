@@ -8,17 +8,14 @@ const LogoutButton = () => {
   const handleLogout = async () => {
     await signOut({
       redirect: true,
-      callbackUrl: "/auth/login",
+      callbackUrl: "/auth/signin",
     });
   };
-  const t = useTranslations("login-page");
+  const t = useTranslations("loginpage");
   return (
     <Button variant={"transparent"} onClick={handleLogout} className="text-lg">
       <LogOutIcon className="mr-1 text-main" />
-      <span className="text-primary">
-        {/* {t("Logout_key")} */}
-        log out
-      </span>
+      <span className="text-primary">{t("Logout_key")}</span>
     </Button>
   );
 };
