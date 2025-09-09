@@ -7,12 +7,11 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
-import LogoutButton from "./LogoutButton";
 import SideBarItems from "./SideBarItems";
 
 export default function AppSidebar() {
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -34,6 +33,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SideBarItems />
 
       {/* <SidebarFooter>

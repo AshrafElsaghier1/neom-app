@@ -36,6 +36,8 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { useState } from "react";
+import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 const SideBarItems = () => {
   const pathname = usePathname();
@@ -113,73 +115,80 @@ const SideBarItems = () => {
               ? currentRoute === item.url
               : currentRoute.startsWith(item.url);
 
-            if (item.children) {
-              return (
-                <Collapsible
-                  key={item.title}
-                  open={openItem === item.title} // only this item opens
-                  onOpenChange={(isOpen) =>
-                    setOpenItem(isOpen ? item.title : null)
-                  }
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger
-                      asChild
-                      className="data-[state=open]:[&>.chevron]:rotate-90"
-                    >
-                      <SidebarMenuButton
-                        className="font-medium"
-                        isActive={isActive}
-                      >
-                        <item.icon
-                          className={isActive ? "text-white" : "text-main"}
-                          size={20}
-                        />
-                        <span className="font-medium">{item.title}</span>
-                        <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 chevron" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.children.map((child) => {
-                          const isChildActive = currentRoute === child.url;
-                          return (
-                            <SidebarMenuSubItem key={child.title}>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={isChildActive}
-                              >
-                                <Link href={child.url}>
-                                  <child.icon size={16} />
-                                  <span className="font-medium">
-                                    {child.title}
-                                  </span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          );
-                        })}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              );
-            }
+            // if (item.children) {
+            //   return (
+            //     <Collapsible
+            //       key={item.title}
+            //       open={openItem === item.title} // only this item opens
+            //       onOpenChange={(isOpen) =>
+            //         setOpenItem(isOpen ? item.title : null)
+            //       }
+            //     >
+            //       <SidebarMenuItem>
+            //         <CollapsibleTrigger
+            //           asChild
+            //           className="data-[state=open]:[&>.chevron]:rotate-90"
+            //         >
+            //           <SidebarMenuButton
+            //             className="font-medium"
+            //             isActive={isActive}
+            //           >
+            //             <item.icon
+            //               className={isActive ? "text-white" : "text-main"}
+            //               size={20}
+            //             />
+            //             <span className="font-medium">{item.title}</span>
+            //             <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 chevron" />
+            //           </SidebarMenuButton>
+            //         </CollapsibleTrigger>
+            //         <CollapsibleContent>
+            //           <SidebarMenuSub>
+            //             {item.children.map((child) => {
+            //               const isChildActive = currentRoute === child.url;
+            //               return (
+            //                 <SidebarMenuSubItem key={child.title}>
+            //                   <SidebarMenuSubButton
+            //                     asChild
+            //                     isActive={isChildActive}
+            //                   >
+            //                     <Link href={child.url}>
+            //                       <child.icon size={16} />
+            //                       <span className="font-medium">
+            //                         {child.title}
+            //                       </span>
+            //                     </Link>
+            //                   </SidebarMenuSubButton>
+            //                 </SidebarMenuSubItem>
+            //               );
+            //             })}
+            //           </SidebarMenuSub>
+            //         </CollapsibleContent>
+            //       </SidebarMenuItem>
+            //     </Collapsible>
+            //   );
+            // }
 
             return (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  className="text-secondary"
-                  isActive={isActive}
-                >
-                  <Link href={item.url}>
-                    <item.icon
-                      className={isActive ? "text-white" : "text-main"}
-                    />
-                    <span className="font-medium">{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton
+                        asChild
+                        className="text-secondary"
+                        isActive={isActive}
+                      >
+                        <Link href={item.url}>
+                          <item.icon
+                            className={isActive ? "text-white" : "text-main"}
+                          />
+                          <span className="font-medium">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{item.title}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </SidebarMenuItem>
             );
           })}
