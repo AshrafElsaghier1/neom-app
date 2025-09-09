@@ -5,10 +5,8 @@ import Header from "@/components/layout/Header";
 import AppSidebar from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { getLocale } from "next-intl/server";
-import { authOptions } from "@/lib/auth";
-import { getServerSession } from "next-auth";
+
 import AuthProvider from "@/components/AuthProvider";
-import { redirect } from "next/navigation";
 import "../globals.css";
 import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({
@@ -24,12 +22,7 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const currentLocale = await getLocale();
-  // const session = await getServerSession(authOptions);
-  // console.log({ session });
 
-  // if (!session?.user) {
-  //   redirect("/auth/signin");
-  // }
   return (
     <NextIntlClientProvider>
       <html
