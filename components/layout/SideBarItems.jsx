@@ -36,7 +36,6 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { useState } from "react";
-import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 const SideBarItems = () => {
@@ -170,25 +169,23 @@ const SideBarItems = () => {
 
             return (
               <SidebarMenuItem key={item.title}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        asChild
-                        className="text-secondary"
-                        isActive={isActive}
-                      >
-                        <Link href={item.url}>
-                          <item.icon
-                            className={isActive ? "text-white" : "text-main"}
-                          />
-                          <span className="font-medium">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{item.title}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      asChild
+                      className="text-secondary"
+                      isActive={isActive}
+                    >
+                      <Link href={item.url}>
+                        <item.icon
+                          className={isActive ? "text-white" : "text-main"}
+                        />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.title}</TooltipContent>
+                </Tooltip>
               </SidebarMenuItem>
             );
           })}
