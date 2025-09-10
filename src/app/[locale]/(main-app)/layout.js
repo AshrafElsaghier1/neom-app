@@ -9,6 +9,7 @@ import { getLocale } from "next-intl/server";
 import AuthProvider from "@/components/AuthProvider";
 import "../globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import SessionWrapper from "@/components/layout/SessionWrapper";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -39,14 +40,16 @@ export default async function RootLayout({ children }) {
               enableSystem
               disableTransitionOnChange
             >
-              <SidebarProvider>
-                <AppSidebar />
-                <div className="w-full">
-                  <Header />
-                  <main className="p-6">{children}</main>
-                  <Toaster position="top-center" richColors duration={1500} />
-                </div>
-              </SidebarProvider>
+              <SessionWrapper>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <div className="w-full">
+                    <Header />
+                    <main className="p-6">{children}</main>
+                    <Toaster position="top-center" richColors duration={1500} />
+                  </div>
+                </SidebarProvider>
+              </SessionWrapper>
             </ThemeProvider>
           </AuthProvider>
         </body>
