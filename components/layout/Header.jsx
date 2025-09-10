@@ -14,7 +14,7 @@ import { ModeToggle } from "./DarkModeSwitcher";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur  transition-colors  duration-100 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-[#ffffffa1] supports-backdrop-blur:bg-white/95 dark:bg-[#171717] flex h-16 shrink-0 items-center gap-2 border-b px-4 ">
+    <header className="sticky top-0 z-40 w-full backdrop-blur  transition-colors  duration-100 lg:z-50 lg:border-b lg:border-slate-900/10 dark:border-slate-50/[0.06] bg-[#ffffffa1] supports-backdrop-blur:bg-white/95 dark:bg-[#171717] flex h-18 shrink-0 items-center gap-2 border-b px-4 ">
       <SidebarTrigger className="-ml-1  bg-main hover:bg-main text-white hover:text-white dark:bg-main dark:hover:bg-main cursor-pointer" />
       <Separator orientation="vertical" className="mr-2 h-4 " />
       <div className="ml-auto flex items-center gap-2">

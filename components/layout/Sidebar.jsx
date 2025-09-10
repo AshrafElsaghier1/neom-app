@@ -14,17 +14,20 @@ export default function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="min-h-[70px]">
             <SidebarMenuButton
               size="lg"
               asChild
               className={"hover:bg-transparent   "}
             >
-              <Link href="/" className="flex items-center w-full  h-[75px]">
+              <Link
+                href="/"
+                className="flex items-center w-full  h-[75px] justify-center"
+              >
                 <Image
                   src="/assets/images/logo.png"
                   alt="Logo"
-                  width={170}
+                  width={190}
                   height={60}
                   priority={true}
                 />

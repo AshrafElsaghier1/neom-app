@@ -168,7 +168,7 @@ const SideBarItems = () => {
             // }
 
             return (
-              <SidebarMenuItem key={item.title}>
+              <SidebarMenuItem key={item.title} className="mt-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
