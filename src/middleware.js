@@ -1,70 +1,95 @@
-// import createMiddleware from "next-intl/middleware";
-// import { routing } from "./i18n/routing";
-
-// export default createMiddleware(routing);
-
-// export const config = {
-//   matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
-// };
-
 import { NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
-import { routing } from "./i18n/routing";
+import { getToken } from "next-auth/jwt";
+import { routing } from "./i18n/routing.js";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const protectedRoutes = ["/dashboard", "/profile", "/settings"];
-const signInPage = "/auth/signin"; // ✅ centralize signin path
+const SUPPORTED_LOCALES = ["en", "ar"];
 
-function isAuthenticated(req) {
-  return Boolean(
-    req.cookies.get("auth-token")?.value || req.cookies.get("session")?.value
+// Public (unauthenticated) routes
+const PUBLIC_ROUTES = ["/auth/signin", "/auth/signup"];
+
+/**
+ * Check if a path is public.
+ * Supports exact match and nested routes.
+ */
+function isPublicRoute(path) {
+  return PUBLIC_ROUTES.some(
+    (route) => path === route || path.startsWith(`${route}/`)
   );
 }
 
-function getUserLocale(req) {
-  const locale = req.cookies.get("locale")?.value;
-  if (["en", "ar"].includes(locale)) return locale;
+/**
+ * Get the user's locale:
+ * - Cookie "NEXT_LOCALE"
+ * - Accept-Language header
+ * - Default "en"
+ */
 
-  const acceptLanguage = req.headers.get("accept-language") || "";
-  return acceptLanguage.includes("ar") ? "ar" : "en";
+function getUserLocale(request) {
+  const cookies = request.cookies;
+  const localeCookie = cookies.get("NEXT_LOCALE")?.value;
+
+  if (localeCookie && SUPPORTED_LOCALES.includes(localeCookie)) {
+    return localeCookie;
+  }
+
+  const acceptLanguage = request.headers.get("accept-language");
+  if (acceptLanguage) {
+    const primaryLang = acceptLanguage.split(",")[0].split("-")[0];
+    if (SUPPORTED_LOCALES.includes(primaryLang)) {
+      return primaryLang;
+    }
+  }
+
+  return "en";
 }
 
-export default function middleware(req) {
-  const { pathname } = req.nextUrl;
-  const token = isAuthenticated(req);
-  const userLocale = getUserLocale(req);
+export default async function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-  // Normalize path (strip locale prefix like /en or /ar)
-  const segments = pathname.split("/");
-  const maybeLocale = segments[1];
-  const pathWithoutLocale = ["en", "ar"].includes(maybeLocale)
-    ? `/${segments.slice(2).join("/")}`
-    : pathname;
-
-  // ✅ If logged in and tries to access signin → redirect home
-  if (token && pathWithoutLocale === signInPage) {
-    return NextResponse.redirect(new URL(`/${userLocale}`, req.url));
-  }
-
-  // If not logged in and hits protected route → redirect to signin
+  // 🚀 Skip middleware for static assets & API calls
   if (
-    !token &&
-    protectedRoutes.some((route) => pathWithoutLocale.startsWith(route))
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/_vercel") ||
+    pathname.includes(".")
   ) {
-    return NextResponse.redirect(
-      new URL(`/${userLocale}${signInPage}`, req.url)
-    );
+    return NextResponse.next();
   }
 
-  // If logged in and visiting `/` → go to locale root
-  if (token && pathname === "/") {
-    return NextResponse.redirect(new URL(`/${userLocale}`, req.url));
+  // Detect locale prefix (e.g. /en, /ar)
+  const localeMatch = pathname.match(/^\/([a-z]{2})(\/.*)?$/);
+  const hasLocalePrefix = Boolean(localeMatch);
+
+  const locale = hasLocalePrefix ? localeMatch[1] : getUserLocale(request);
+  const pathWithoutLocale = hasLocalePrefix ? localeMatch[2] || "/" : pathname;
+
+  // ✅ Verify session with getToken
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const isAuth = Boolean(token);
+  const isPublic = isPublicRoute(pathWithoutLocale);
+
+  // 🚩 Not authenticated & protected route → redirect to signin with callbackUrl
+  if (!isAuth && !isPublic) {
+    const redirectUrl = new URL(`/${locale}/auth/signin`, request.url);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  return intlMiddleware(req);
+  // 🚩 Authenticated & on signin/signup → redirect to dashboard
+  if (isAuth && isPublic) {
+    return NextResponse.redirect(new URL(`/${locale}/`, request.url));
+  }
+
+  // Pass to intl middleware
+  return intlMiddleware(request);
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  matcher: ["/((?!api|_next|.*\\..*).*)"],
 };
