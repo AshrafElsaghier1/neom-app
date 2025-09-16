@@ -1,46 +1,95 @@
-import createMiddleware from "next-intl/middleware";
-import { routing } from "./i18n/routing";
+import { NextResponse } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
+import { getToken } from "next-auth/jwt";
+import { routing } from "./i18n/routing.js";
 
-export default createMiddleware(routing);
+const intlMiddleware = createIntlMiddleware(routing);
+
+const SUPPORTED_LOCALES = ["en", "ar"];
+
+// Public (unauthenticated) routes
+const PUBLIC_ROUTES = ["/auth/signin", "/auth/signup"];
+
+/**
+ * Check if a path is public.
+ * Supports exact match and nested routes.
+ */
+function isPublicRoute(path) {
+  return PUBLIC_ROUTES.some(
+    (route) => path === route || path.startsWith(`${route}/`)
+  );
+}
+
+/**
+ * Get the user's locale:
+ * - Cookie "NEXT_LOCALE"
+ * - Accept-Language header
+ * - Default "en"
+ */
+
+function getUserLocale(request) {
+  const cookies = request.cookies;
+  const localeCookie = cookies.get("NEXT_LOCALE")?.value;
+
+  if (localeCookie && SUPPORTED_LOCALES.includes(localeCookie)) {
+    return localeCookie;
+  }
+
+  const acceptLanguage = request.headers.get("accept-language");
+  if (acceptLanguage) {
+    const primaryLang = acceptLanguage.split(",")[0].split("-")[0];
+    if (SUPPORTED_LOCALES.includes(primaryLang)) {
+      return primaryLang;
+    }
+  }
+
+  return "en";
+}
+
+export default async function middleware(request) {
+  const { pathname } = request.nextUrl;
+
+  // 🚀 Skip middleware for static assets & API calls
+  if (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/_vercel") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  // Detect locale prefix (e.g. /en, /ar)
+  const localeMatch = pathname.match(/^\/([a-z]{2})(\/.*)?$/);
+  const hasLocalePrefix = Boolean(localeMatch);
+
+  const locale = hasLocalePrefix ? localeMatch[1] : getUserLocale(request);
+  const pathWithoutLocale = hasLocalePrefix ? localeMatch[2] || "/" : pathname;
+
+  // ✅ Verify session with getToken
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const isAuth = Boolean(token);
+  const isPublic = isPublicRoute(pathWithoutLocale);
+
+  // 🚩 Not authenticated & protected route → redirect to signin with callbackUrl
+  if (!isAuth && !isPublic) {
+    const redirectUrl = new URL(`/${locale}/auth/signin`, request.url);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // 🚩 Authenticated & on signin/signup → redirect to dashboard
+  if (isAuth && isPublic) {
+    return NextResponse.redirect(new URL(`/${locale}/`, request.url));
+  }
+
+  // Pass to intl middleware
+  return intlMiddleware(request);
+}
 
 export const config = {
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  matcher: ["/((?!api|_next|.*\\..*).*)"],
 };
-
-// import { NextResponse } from "next/server";
-// import { getToken } from "next-auth/jwt";
-
-// const PUBLIC_FILE = /\.(.*)$/;
-// const signInPage = "/auth/login";
-// export async function middleware(req) {
-//   const { pathname } = req.nextUrl;
-
-//   if (
-//     pathname.startsWith("/_next") ||
-//     pathname.startsWith("/api") ||
-//     PUBLIC_FILE.test(pathname)
-//   ) {
-//     return NextResponse.next();
-//   }
-
-//   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-//   if (token && new Date(token?.expires) < Date.now()) {
-//     const response = NextResponse.redirect(new URL(signInPage, req.url));
-
-//     response.cookies.set("next-auth.session-token", "", { maxAge: 0 });
-//     response.cookies.set("__Secure-next-auth.session-token", "", { maxAge: 0 });
-
-//     return response;
-//   }
-
-//   if (token && pathname === signInPage) {
-//     return NextResponse.redirect(new URL("/", req.url));
-//   }
-
-//   return NextResponse.next();
-// }
-
-// export const config = {
-//   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-// };

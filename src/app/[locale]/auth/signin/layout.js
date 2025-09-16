@@ -1,11 +1,11 @@
 import { Inter } from "next/font/google";
-import { NextIntlClientProvider, useLocale } from "next-intl";
+import { NextIntlClientProvider } from "next-intl";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-import Header from "@/components/layout/Header";
-import AppSidebar from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
-import "./globals.css";
+
+import { getLocale } from "next-intl/server";
+import "../../globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -18,8 +18,9 @@ export const metadata = {
   description: " ",
 };
 
-export default function RootLayout({ children }) {
-  const currentLocale = useLocale();
+export default async function RootLayout({ children }) {
+  const currentLocale = await getLocale();
+
   return (
     <NextIntlClientProvider>
       <html
@@ -31,16 +32,10 @@ export default function RootLayout({ children }) {
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
-            enableSystem
             disableTransitionOnChange
           >
-            <SidebarProvider>
-              <AppSidebar />
-              <div className="w-full">
-                <Header />
-                <main className="p-6">{children}</main>
-              </div>
-            </SidebarProvider>
+            <main className="  ">{children}</main>
+            <Toaster position="top-center" richColors duration={1500} />
           </ThemeProvider>
         </body>
       </html>

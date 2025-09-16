@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,11 @@ function useSidebar() {
 
   return context;
 }
-
+function useSidebarSide() {
+  const locale = useLocale();
+  const isMobile = useIsMobile();
+  return isMobile && locale === "ar" ? "right" : "left";
+}
 function SidebarProvider({
   defaultOpen = true,
   open: openProp,
@@ -139,6 +143,7 @@ function Sidebar({
   ...props
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const locale = useLocale();
 
   if (collapsible === "none") {
     return (
@@ -156,6 +161,7 @@ function Sidebar({
   }
 
   if (isMobile) {
+    const sideDir = locale === "ar" ? "right" : "left";
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -166,7 +172,7 @@ function Sidebar({
           style={{
             "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
           }}
-          side={side}
+          side={sideDir}
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>
@@ -227,17 +233,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({ className, onClick, ...props }) {
-  const { toggleSidebar, open } = useSidebar();
-  const locale = useLocale();
-  const isRTL = locale === "ar";
-
-  const Icon = (() => {
-    if (isRTL) {
-      return open ? ArrowRight : ArrowLeft;
-    } else {
-      return open ? ArrowLeft : ArrowRight;
-    }
-  })();
+  const { toggleSidebar } = useSidebar();
 
   return (
     <Button
@@ -252,7 +248,7 @@ function SidebarTrigger({ className, onClick, ...props }) {
       }}
       {...props}
     >
-      <Icon />
+      <PanelLeft />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -421,7 +417,7 @@ function SidebarMenu({ className, ...props }) {
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+      className={cn("flex w-full min-w-0 flex-col gap-1 ", className)}
       {...props}
     />
   );

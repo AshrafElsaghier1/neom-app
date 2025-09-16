@@ -1,5 +1,16 @@
 {
-  "login-page": {
-    "title": "تسجيل الدخول"
+  "loginPage": {
+    "Login_success_key": "تم تسجيل الدخول بنجاح! جارٍ التحويل...",
+    "Login_error_key": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
+    "Invalid_email_or_password_key": " البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "Welcome_back_key": "مرحبًا بعودتك! يرجى إدخال معلوماتك الشخصية للمتابعة.",
+    "Enter_email_key": "أدخل  البريد الإلكتروني",
+    "email_key": " البريد الإلكتروني",
+    "Password_key": "كلمة المرور",
+    "Signing_In_key": "جارٍ تسجيل الدخول...",
+    "Sign_In_key": "تسجيل الدخول",
+    "email_is_required_key": "       البريد الإلكتروني مطلوب",
+    "Password_is_required_key": "كلمة المرور مطلوبة",
+    "Logout_key": "تسجيل الخروج"
   }
 }
