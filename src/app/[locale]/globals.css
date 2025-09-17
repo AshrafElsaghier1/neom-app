@@ -142,3 +142,6 @@
   background: var(--color-main);
   border-radius: 8px;
 }
+.leaflet-control-attribution.leaflet-control {
+  display: none;
+}

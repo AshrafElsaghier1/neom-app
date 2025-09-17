@@ -7,9 +7,10 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { getLocale } from "next-intl/server";
 
 import AuthProvider from "@/components/AuthProvider";
-import "../globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import SessionWrapper from "@/components/layout/SessionWrapper";
+import "../globals.css";
+import MainLayout from "@/components/layout/MainLayout";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -48,10 +49,10 @@ export default async function RootLayout({ children }) {
                   <AppSidebar />
                   <div className="w-full">
                     <Header />
-                    <main className="p-6">{children}</main>
-                    <Toaster position="top-center" richColors duration={1500} />
+                    <MainLayout className="">{children}</MainLayout>
                   </div>
                 </SidebarProvider>
+                <Toaster position="top-center" richColors duration={1500} />
               </SessionWrapper>
             </ThemeProvider>
           </AuthProvider>
