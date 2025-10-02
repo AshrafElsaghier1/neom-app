@@ -47,62 +47,62 @@ const SideBarItems = () => {
 
   const items = [
     { title: "Dashboard", url: "/", icon: BarChart3, exact: true },
-    { title: "Bookings", url: "/bookings", icon: CalendarDays },
-    { title: "Requests", url: "/requests", icon: TableProperties },
-    { title: "Checklist", url: "/checklist", icon: FileCheck2 },
+    // { title: "Bookings", url: "/bookings", icon: CalendarDays },
+    // { title: "Requests", url: "/requests", icon: TableProperties },
+    // { title: "Checklist", url: "/checklist", icon: FileCheck2 },
     { title: "Track", url: "/track", icon: LineSquiggle },
-    {
-      title: "Reports",
-      url: "/reports",
-      icon: NotebookText,
-      children: [
-        {
-          title: "Driver Behaviour",
-          url: "/reports/driver-behaviour",
-          icon: FileText,
-        },
-        {
-          title: "Safety Checklist",
-          url: "/reports/safety-checklist",
-          icon: Shield,
-        },
-        { title: "Utilization", url: "/reports/utilization", icon: BarChart3 },
-        {
-          title: "Checklist/Damage",
-          url: "/reports/checklist-damage",
-          icon: FileText,
-        },
-        {
-          title: "Vehicle Status",
-          url: "/reports/vehicle-status",
-          icon: CarFront,
-        },
-        {
-          title: "Service Maintenance",
-          url: "/reports/service-maintenance",
-          icon: Wrench,
-        },
-      ],
-    },
-    {
-      title: "Vehicles",
-      url: "/vehicles",
-      icon: Car,
-      children: [
-        { title: "All vehicles", url: "/vehicles/all", icon: Car },
-        { title: "Maintenance", url: "/vehicles/maintenance", icon: Wrench },
-        {
-          title: "Periodically Plans",
-          url: "/vehicles/periodically-plans",
-          icon: FileText,
-        },
-      ],
-    },
-    { title: "Stations", url: "/stations", icon: Truck },
-    { title: "Users", url: "/users", icon: Users },
-    { title: "Departments", url: "/departments", icon: Users2 },
-    { title: "Sectors", url: "/sectors", icon: Building },
-    { title: "Support", url: "/support", icon: Users2 },
+    // {
+    //   title: "Reports",
+    //   url: "/reports",
+    //   icon: NotebookText,
+    //   children: [
+    //     {
+    //       title: "Driver Behaviour",
+    //       url: "/reports/driver-behaviour",
+    //       icon: FileText,
+    //     },
+    //     {
+    //       title: "Safety Checklist",
+    //       url: "/reports/safety-checklist",
+    //       icon: Shield,
+    //     },
+    //     { title: "Utilization", url: "/reports/utilization", icon: BarChart3 },
+    //     {
+    //       title: "Checklist/Damage",
+    //       url: "/reports/checklist-damage",
+    //       icon: FileText,
+    //     },
+    //     {
+    //       title: "Vehicle Status",
+    //       url: "/reports/vehicle-status",
+    //       icon: CarFront,
+    //     },
+    //     {
+    //       title: "Service Maintenance",
+    //       url: "/reports/service-maintenance",
+    //       icon: Wrench,
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: "Vehicles",
+    //   url: "/vehicles",
+    //   icon: Car,
+    //   children: [
+    //     { title: "All vehicles", url: "/vehicles/all", icon: Car },
+    //     { title: "Maintenance", url: "/vehicles/maintenance", icon: Wrench },
+    //     {
+    //       title: "Periodically Plans",
+    //       url: "/vehicles/periodically-plans",
+    //       icon: FileText,
+    //     },
+    //   ],
+    // },
+    // { title: "Stations", url: "/stations", icon: Truck },
+    // { title: "Users", url: "/users", icon: Users },
+    // { title: "Departments", url: "/departments", icon: Users2 },
+    // { title: "Sectors", url: "/sectors", icon: Building },
+    // { title: "Support", url: "/support", icon: Users2 },
   ];
 
   return (
