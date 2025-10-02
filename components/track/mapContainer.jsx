@@ -7,9 +7,8 @@ const MapInner = () => {
     <MapContainer
       zoom={6}
       scrollWheelZoom={true}
-      // style={{ height: , width: "100%" }}
       center={[23.8859, 45.0792]}
-      className="h-[calc(100vh-72px)] w-full"
+      className="h-[calc(100vh-72px)] w-full z-2"
     >
       <TileLayer
         url="http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
