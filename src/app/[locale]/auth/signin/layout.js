@@ -16,6 +16,9 @@ const inter = Inter({
 export const metadata = {
   title: "Neom ShareX Dashboard",
   description: " ",
+  icons: {
+    icon: "/favico.png",
+  },
 };
 
 export default async function RootLayout({ children }) {

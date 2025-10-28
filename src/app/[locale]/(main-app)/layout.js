@@ -7,9 +7,10 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { getLocale } from "next-intl/server";
 
 import AuthProvider from "@/components/AuthProvider";
-import "../globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import SessionWrapper from "@/components/layout/SessionWrapper";
+import "../globals.css";
+import MainLayout from "@/components/layout/MainLayout";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -19,6 +20,9 @@ const inter = Inter({
 export const metadata = {
   title: "Neom ShareX Dashboard",
   description: " ",
+  icons: {
+    icon: "/favico.png",
+  },
 };
 
 export default async function RootLayout({ children }) {
@@ -32,7 +36,7 @@ export default async function RootLayout({ children }) {
         suppressHydrationWarning
         className="dark"
       >
-        <body className={`${inter.className} antialiased`}>
+        <body className={`${inter.variable} antialiased`}>
           <AuthProvider>
             <ThemeProvider
               attribute="class"
@@ -45,10 +49,10 @@ export default async function RootLayout({ children }) {
                   <AppSidebar />
                   <div className="w-full">
                     <Header />
-                    <main className="p-6">{children}</main>
-                    <Toaster position="top-center" richColors duration={1500} />
+                    <MainLayout className="">{children}</MainLayout>
                   </div>
                 </SidebarProvider>
+                <Toaster position="top-center" richColors duration={1500} />
               </SessionWrapper>
             </ThemeProvider>
           </AuthProvider>
