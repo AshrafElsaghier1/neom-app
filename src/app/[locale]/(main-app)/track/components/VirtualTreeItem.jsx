@@ -49,9 +49,8 @@ const VirtualTreeItem = React.memo(
 
         {/* Checkbox */}
         <Checkbox
-          checked={isChecked}
-          indeterminate={isIndeterminate}
-          onCheckedChange={(checked) => onToggleCheck(nodeId, checked)}
+          checked={isIndeterminate ? "indeterminate" : isChecked}
+          onCheckedChange={(value) => onToggleCheck(nodeId, value === true)}
           onClick={(e) => e.stopPropagation()}
           className="scale-90"
         />
