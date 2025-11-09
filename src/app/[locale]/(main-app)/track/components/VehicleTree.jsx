@@ -24,7 +24,6 @@ export default function VehicleTree() {
   const [treeData, setTreeData] = useState([]);
   const [checked, setChecked] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
-  // IDs the user manually collapsed (should never be auto-reopened)
   const [userCollapsed, setUserCollapsed] = useState(new Set());
   const [search, setSearch] = useState("");
 
@@ -42,7 +41,7 @@ export default function VehicleTree() {
 
   useEffect(() => {
     const init = async () => {
-      await fetchVehicles(true); // fetches data + safely initializes socket if needed
+      await fetchVehicles(true);
     };
 
     init();
@@ -234,24 +233,33 @@ export default function VehicleTree() {
         .map(getNodeId),
     [nodeMap]
   );
+
   const allSelected = search.trim()
     ? visibleVehicleIds.length > 0 &&
       visibleVehicleIds.every((id) => checked.has(id))
     : allVehicleIds.length > 0 && allVehicleIds.every((id) => checked.has(id));
   const selectAll = useCallback(() => {
-    const idsToSelect = search.trim()
-      ? visibleVehicleIds // when searching, only select visible
-      : allVehicleIds; // otherwise select everything
-    setChecked(new Set(idsToSelect));
+    setChecked((prev) => {
+      const next = new Set(prev);
+      const idsToSelect = search.trim() ? visibleVehicleIds : allVehicleIds;
+      idsToSelect.forEach((id) => next.add(id));
+      return next;
+    });
   }, [allVehicleIds, visibleVehicleIds, search]);
-
-  const clearSelection = useCallback(() => setChecked(new Set()), []);
-
+  const clearSelection = useCallback(() => {
+    setChecked((prev) => {
+      if (!search.trim()) return new Set(); // clear all
+      const next = new Set(prev);
+      visibleVehicleIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, [search, visibleVehicleIds]);
   /* ---------------- Render ---------------- */
   return (
     <>
       <div className="text-sm text-muted-foreground mb-2">
-        {checked.size} selected / {flatData.length} visible
+        {/* {checked.size} selected / {flatData.length} visible */}
+        {checked.size} selected total / {flatData.length} visible
       </div>
 
       {/* Search Bar */}
