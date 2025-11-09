@@ -32,22 +32,24 @@ export default function VehicleTree() {
 
   const {
     fetchVehicles,
-    initSocket,
     closeSocket,
-    isConnected,
-    reconnectTrigger,
+
     vehicles,
     loading,
   } = useVehicleStore();
 
   /* ---------------- Init: Fetch + Socket ---------------- */
+
   useEffect(() => {
     const init = async () => {
-      await fetchVehicles(true);
-      initSocket();
+      await fetchVehicles(true); // fetches data + safely initializes socket if needed
     };
+
     init();
-    return () => closeSocket();
+
+    return () => {
+      closeSocket(); // cleanup
+    };
   }, []);
 
   useEffect(() => {
@@ -110,10 +112,6 @@ export default function VehicleTree() {
     return { filteredTree: ft, allGroupIds: groupIds };
   }, [treeData, search]);
 
-  /* ---------------- Merge auto-open group IDs into expanded (but respect userCollapsed) ----------------
-     When search starts, add group ids into expanded EXCEPT those user explicitly closed.
-     This ensures user-collapsed groups remain closed even if a new update arrives.
-  ---------------------------------------------------------------------------*/
   useEffect(() => {
     const term = search.trim();
     if (!term) return;
@@ -140,6 +138,11 @@ export default function VehicleTree() {
     // use filteredTree but respect expanded state so user toggles apply
     return flattenTree(filteredTree, expanded);
   }, [treeData, expanded, search, filteredTree]);
+  const visibleVehicleIds = useMemo(() => {
+    return flatData
+      .filter((n) => !n.children?.length) // only vehicles (leaf nodes)
+      .map(getNodeId);
+  }, [flatData]);
 
   /* ---------------- Virtualizer ---------------- */
   const parentRef = useRef(null);
@@ -231,13 +234,17 @@ export default function VehicleTree() {
         .map(getNodeId),
     [nodeMap]
   );
+  const allSelected = search.trim()
+    ? visibleVehicleIds.length > 0 &&
+      visibleVehicleIds.every((id) => checked.has(id))
+    : allVehicleIds.length > 0 && allVehicleIds.every((id) => checked.has(id));
+  const selectAll = useCallback(() => {
+    const idsToSelect = search.trim()
+      ? visibleVehicleIds // when searching, only select visible
+      : allVehicleIds; // otherwise select everything
+    setChecked(new Set(idsToSelect));
+  }, [allVehicleIds, visibleVehicleIds, search]);
 
-  const allSelected =
-    checked.size === allVehicleIds.length && allVehicleIds.length > 0;
-  const selectAll = useCallback(
-    () => setChecked(new Set(allVehicleIds)),
-    [allVehicleIds]
-  );
   const clearSelection = useCallback(() => setChecked(new Set()), []);
 
   /* ---------------- Render ---------------- */

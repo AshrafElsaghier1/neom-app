@@ -72,7 +72,7 @@ const VirtualTreeItem = React.memo(
               <span> {vehicleMake}</span> <span> {vehicleSerial}</span>
             </span>
             <span className="text-xs px-2 py-1 bg-accent rounded-md shrink-0 select-none shadow-sm">
-              {speed ?? 0} km/h
+              {speed ? speed.toFixed(2) : 0} km/h
             </span>
           </div>
         )}
