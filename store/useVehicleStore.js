@@ -3,9 +3,21 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 
-// Buffers to batch incoming updates
+// --- Shared update buffer
 let updateBuffer = {};
 let updateTimer = null;
+
+// --- Merge helper
+const mergeVehicleUpdates = (vehicles, updates) => {
+  const map = new Map(vehicles.map((v) => [v.id || v.SerialNumber, v]));
+  for (const veh of updates) {
+    const key = veh.id || veh.SerialNumber;
+    if (!key) continue;
+    const existing = map.get(key) || {};
+    map.set(key, { ...existing, ...veh });
+  }
+  return Array.from(map.values());
+};
 
 export const useVehicleStore = create((set, get) => ({
   vehicles: [],
@@ -14,36 +26,56 @@ export const useVehicleStore = create((set, get) => ({
   socket: null,
   isConnected: false,
 
+  // --- Fetch vehicles
   fetchVehicles: async (force = false) => {
-    const { loading, vehicles } = get();
-    if (loading || (!force && vehicles.length > 0)) return;
+    const { loading, vehicles, initSocket, closeSocket, isConnected } = get();
+    if (loading) return;
+    if (!force && vehicles.length > 0) {
+      // Ensure socket started only once
+      if (!isConnected) initSocket();
+      return;
+    }
 
     set({ loading: true, error: null });
 
     try {
       const { data, error, status } = await api.getAllVehicles();
-
       if (error || status >= 400)
-        throw new Error(error || `Request failed with status ${status}`);
+        throw new Error(error || `Request failed (${status})`);
       if (!Array.isArray(data))
-        throw new Error("Invalid response format — expected an array.");
+        throw new Error("Invalid response format (expected array)");
 
       set({ vehicles: data, loading: false, error: null });
 
-      // Initialize socket *after* we have data
-      const { socket, isConnected } = get();
-      if (socket && isConnected) get().subscribeToAllVehicles(socket, data);
+      // ✅ Only init socket if vehicles exist
+      if (data.length > 0) {
+        initSocket();
+      } else {
+        closeSocket();
+      }
     } catch (err) {
-      console.error("🚨 Vehicle fetch error:", err);
+      console.error("Vehicle fetch error:", err);
       toast.error(err.message || "Failed to fetch vehicles");
       set({ error: err.message, loading: false });
+      closeSocket();
     }
   },
 
-  // --- Initialize Socket ---
+  // --- Initialize Socket (no duplicates)
   initSocket: () => {
-    const existing = get().socket;
-    if (existing) existing.disconnect();
+    const { vehicles, socket, isConnected } = get();
+
+    // ✅ Skip if already connected
+    if (socket && isConnected) {
+      console.debug("Socket already connected — skipping re-init");
+      return;
+    }
+
+    // ✅ Skip if no vehicles
+    if (!vehicles || vehicles.length === 0) {
+      console.warn("No vehicles to track. Socket will not connect.");
+      return;
+    }
 
     const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_IO_URL;
     if (!SOCKET_URL) {
@@ -51,101 +83,68 @@ export const useVehicleStore = create((set, get) => ({
       return;
     }
 
-    const TOKEN =
-      "ed9a68532c60d1e503b78b8b268b22df:cf8e83772d9caff56178a1b394c48ca959dbd7f6ce7073ec4f9629bb0ff92679b9886e8d07ecdd758f21bd328c1e2f43";
+    // 🔒 Clean up any old socket before creating a new one
+    socket?.off?.();
+    socket?.disconnect?.();
 
-    const socket = io(`${SOCKET_URL}/consumer`, {
-      // auth: { token: TOKEN },
+    const newSocket = io(`${SOCKET_URL}/consumer`, {
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 5000,
+      reconnectionDelay: 3000,
     });
 
-    socket.on("connect", () => {
-      console.log("✅ Socket connected");
+    // --- Events
+    newSocket.on("connect", () => {
       set({ isConnected: true });
+      console.debug("Socket connected");
 
-      // Subscribe to all vehicles after connect
-      const { vehicles } = get();
-      if (vehicles.length > 0) get().subscribeToAllVehicles(socket, vehicles);
+      const serials = vehicles.map((v) => v.SerialNumber).filter(Boolean);
+      serials.forEach((s) => newSocket.emit("track", { serial: s }));
     });
 
-    socket.on("disconnect", (reason) => {
-      console.warn("❌ Socket disconnected:", reason);
+    newSocket.on("disconnect", () => {
+      console.debug("Socket disconnected");
       set({ isConnected: false });
     });
 
-    socket.on("reconnect", () => {
-      console.log("🔄 Socket reconnected");
-      const { vehicles } = get();
-      get().subscribeToAllVehicles(socket, vehicles);
+    newSocket.on("reconnect", () => {
+      const serials = get()
+        .vehicles.map((v) => v.SerialNumber)
+        .filter(Boolean);
+      serials.forEach((s) => newSocket.emit("track", { serial: s }));
     });
 
-    socket.on("connect_error", (err) => {
-      console.error("⚠️ Connection Error:", err.message);
-      toast.error("Socket connection failed");
-    });
-
-    // 🚗 Handle vehicle updates
-    socket.on("update", (updateData) => {
-      if (!updateData) return;
-
-      // Single or multiple updates
+    newSocket.on("update", (updateData) => {
       const updates = Array.isArray(updateData) ? updateData : [updateData];
-      updates.forEach((v) => {
-        if (!v.id && !v.SerialNumber) return;
+      for (const v of updates) {
         const key = v.id || v.SerialNumber;
-        updateBuffer[key] = v;
-      });
+        if (key) updateBuffer[key] = v;
+      }
 
-      // Batch updates to avoid re-render spam
       if (!updateTimer) {
         updateTimer = setTimeout(() => {
-          const updates = Object.values(updateBuffer);
+          const pending = Object.values(updateBuffer);
           updateBuffer = {};
           updateTimer = null;
+          if (pending.length === 0) return;
 
-          set((state) => {
-            const map = new Map(
-              state.vehicles.map((v) => [v.id || v.SerialNumber, v])
-            );
-            updates.forEach((u) => {
-              const key = u.id || u.SerialNumber;
-              const existing = map.get(key) || {};
-              map.set(key, { ...existing, ...u });
-            });
-            return { vehicles: Array.from(map.values()) };
-          });
-        }, 300);
+          set((state) => ({
+            vehicles: mergeVehicleUpdates(state.vehicles, pending),
+          }));
+        }, 250);
       }
     });
 
-    set({ socket });
+    set({ socket: newSocket });
   },
 
-  // --- Subscribe to all vehicles ---
-  subscribeToAllVehicles: (socket, vehicles = []) => {
-    if (!socket?.connected) {
-      console.warn("⚠️ Socket not connected, skipping subscription");
-      return;
-    }
-
-    const validVehicles = vehicles.filter((v) => v.SerialNumber);
-    validVehicles.forEach((v) => {
-      socket.emit("track", { serial: v.SerialNumber });
-    });
-
-    console.log(`📡 Subscribed to ${validVehicles.length} vehicles`);
-  },
-
-  // --- Close socket manually ---
+  // --- Close Socket
   closeSocket: () => {
-    const socket = get().socket;
-    if (socket) {
-      socket.disconnect();
-      console.log("🔌 Socket disconnected manually");
-      set({ socket: null, isConnected: false });
-    }
+    const { socket, isConnected } = get();
+    if (!socket && !isConnected) return;
+    socket?.off?.();
+    socket?.disconnect?.();
+    set({ socket: null, isConnected: false });
   },
 }));
