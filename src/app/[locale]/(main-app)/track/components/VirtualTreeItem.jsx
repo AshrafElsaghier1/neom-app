@@ -56,9 +56,9 @@ const VirtualTreeItem = React.memo(
         />
 
         <div className="flex items-center gap-2 truncate">
-          <span className="truncate text-sm font-medium text-foreground">
+          <mark className="truncate text-sm font-medium text-foreground bg-transparent">
             {node.label}
-          </span>
+          </mark>
           {hasChildren && (
             <span className="text-xs text-muted-foreground">
               ({node.count})
@@ -72,7 +72,7 @@ const VirtualTreeItem = React.memo(
               <span> {vehicleMake}</span> <span> {vehicleSerial}</span>
             </span>
             <span className="text-xs px-2 py-1 bg-accent rounded-md shrink-0 select-none shadow-sm">
-              {speed ? Math.round(speed) : 0} km/h
+              {speed ? speed.toFixed(1) : 0} km/h
             </span>
           </div>
         )}
