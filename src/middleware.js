@@ -7,25 +7,13 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 const SUPPORTED_LOCALES = ["en", "ar"];
 
-// Public (unauthenticated) routes
 const PUBLIC_ROUTES = ["/auth/signin", "/auth/signup"];
 
-/**
- * Check if a path is public.
- * Supports exact match and nested routes.
- */
 function isPublicRoute(path) {
   return PUBLIC_ROUTES.some(
     (route) => path === route || path.startsWith(`${route}/`)
   );
 }
-
-/**
- * Get the user's locale:
- * - Cookie "NEXT_LOCALE"
- * - Accept-Language header
- * - Default "en"
- */
 
 function getUserLocale(request) {
   const cookies = request.cookies;
@@ -48,8 +36,6 @@ function getUserLocale(request) {
 
 export default async function middleware(request) {
   const { pathname } = request.nextUrl;
-
-  // 🚀 Skip middleware for static assets & API calls
   if (
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
@@ -66,7 +52,7 @@ export default async function middleware(request) {
   const locale = hasLocalePrefix ? localeMatch[1] : getUserLocale(request);
   const pathWithoutLocale = hasLocalePrefix ? localeMatch[2] || "/" : pathname;
 
-  // ✅ Verify session with getToken
+  //  Verify session with getToken
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -75,18 +61,17 @@ export default async function middleware(request) {
   const isAuth = Boolean(token);
   const isPublic = isPublicRoute(pathWithoutLocale);
 
-  // 🚩 Not authenticated & protected route → redirect to signin with callbackUrl
+  //  Not authenticated & protected route → redirect to signin with callbackUrl
   if (!isAuth && !isPublic) {
     const redirectUrl = new URL(`/${locale}/auth/signin`, request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 🚩 Authenticated & on signin/signup → redirect to dashboard
+  //   Authenticated & on signin/signup → redirect to dashboard
   if (isAuth && isPublic) {
     return NextResponse.redirect(new URL(`/${locale}/`, request.url));
   }
 
-  // Pass to intl middleware
   return intlMiddleware(request);
 }
 

@@ -28,7 +28,7 @@ export default function VehiclesClient() {
     async function fetchVehicles() {
       const { data } = await api.getAllVehicles();
 
-      setVehicles(data.docs || []);
+      setVehicles(data || []);
     }
     fetchVehicles();
   }, []);

@@ -36,7 +36,7 @@ export default async function RootLayout({ children }) {
         suppressHydrationWarning
         className="dark"
       >
-        <body className={`${inter.className} antialiased`}>
+        <body className={`${inter.variable} antialiased`}>
           <AuthProvider>
             <ThemeProvider
               attribute="class"

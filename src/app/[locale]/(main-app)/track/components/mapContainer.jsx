@@ -1,8 +1,6 @@
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 const MapInner = () => {
-  console.log("sadasd");
-
   return (
     <div className="flex w-full h-[calc(100vh-72px)]">
       <MapContainer
