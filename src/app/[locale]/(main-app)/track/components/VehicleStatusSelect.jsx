@@ -7,18 +7,69 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const VEHICLE_STATUSES = [
-  { value: "available", label: "Available", count: 23 },
-  { value: "in-transit", label: "In Transit", count: 33 },
-  { value: "maintenance", label: "Maintenance", count: 13 },
-  { value: "out-of-service", label: "Out of Service", count: 0 },
-  { value: "reserved", label: "Reserved", count: 2 },
-  { value: "loading", label: "Loading", count: 123 },
-  { value: "unloading", label: "Unloading ", count: 232 },
-  { value: "parked", label: "Parked", count: 26 },
-];
-
 export function VehicleStatusSelect({ value, onValueChange }) {
+  const VEHICLE_STATUSES = [
+    {
+      value: "all",
+      label: "All",
+      count: 12,
+    },
+    {
+      value: "Running",
+      label: "Running",
+      count: 5,
+    },
+    {
+      value: "Stopped",
+      label: "Stopped",
+      count: 6,
+    },
+    {
+      value: "Invalid_Locations",
+      label: "Invalid Locations",
+      count: 14,
+    },
+    {
+      value: "Idling",
+      label: "Idling",
+      count: 12,
+    },
+    {
+      value: "Over_Speed",
+      label: "Over Speed",
+      count: 9,
+    },
+    {
+      value: "Over_Street_Speed",
+      label: "Over Street Speed",
+      count: 6,
+    },
+    {
+      value: "Sleep_mode",
+      label: "Sleep mode",
+      count: 12,
+    },
+    {
+      value: "Offline",
+      label: "Offline",
+      count: 33,
+    },
+    {
+      value: "Exceeding",
+      label: "Late End",
+      count: 22,
+    },
+    {
+      value: "Accepted",
+      label: "Accepted",
+      count: 15,
+    },
+    {
+      value: "Unavailable",
+      label: "Unavailable",
+      count: 7,
+    },
+  ];
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className="w-full  ">

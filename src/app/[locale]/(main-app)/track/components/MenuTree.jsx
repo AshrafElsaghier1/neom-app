@@ -5,7 +5,7 @@ import VehicleTree from "./VehicleTree";
 
 const MenuTree = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
-  const [vehicleStatus, setVehicleStatus] = useState("available");
+  const [vehicleStatus, setVehicleStatus] = useState("all");
 
   const handleStatusChange = (newStatus) => {
     setVehicleStatus(newStatus);
