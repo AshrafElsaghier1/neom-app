@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
+import { CalcVehicleStatus } from "@/lib/utils";
 
 // --- Shared update buffer
 let updateBuffer = {};
@@ -26,12 +27,10 @@ export const useVehicleStore = create((set, get) => ({
   socket: null,
   isConnected: false,
 
-  // --- Fetch vehicles
   fetchVehicles: async (force = false) => {
     const { loading, vehicles, initSocket, closeSocket, isConnected } = get();
     if (loading) return;
     if (!force && vehicles.length > 0) {
-      // Ensure socket started only once
       if (!isConnected) initSocket();
       return;
     }
@@ -45,14 +44,16 @@ export const useVehicleStore = create((set, get) => ({
       if (!Array.isArray(data))
         throw new Error("Invalid response format (expected array)");
 
-      set({ vehicles: data, loading: false, error: null });
+      // 🆕 Add your new property here
+      const enrichedVehicles = data.map((v) => ({
+        ...v,
+        vehStatusCode: CalcVehicleStatus(v),
+      }));
 
-      // ✅ Only init socket if vehicles exist
-      if (data.length > 0) {
-        initSocket();
-      } else {
-        closeSocket();
-      }
+      set({ vehicles: enrichedVehicles, loading: false, error: null });
+
+      if (data.length > 0) initSocket();
+      else closeSocket();
     } catch (err) {
       console.error("Vehicle fetch error:", err);
       toast.error(err.message || "Failed to fetch vehicles");
@@ -117,11 +118,22 @@ export const useVehicleStore = create((set, get) => ({
 
     newSocket.on("update", (updateData) => {
       const updates = Array.isArray(updateData) ? updateData : [updateData];
+      // for (const v of updates) {
+      //   const key = v.id || v.SerialNumber;
+      //   if (key) updateBuffer[key] = v;
+      // }
       for (const v of updates) {
         const key = v.id || v.SerialNumber;
-        if (key) updateBuffer[key] = v;
-      }
+        if (!key) continue;
 
+        // 🧠 Recalculate vehicle status before merging
+        const updatedVeh = {
+          ...v,
+          vehStatusCode: CalcVehicleStatus(v),
+        };
+
+        updateBuffer[key] = updatedVeh;
+      }
       if (!updateTimer) {
         updateTimer = setTimeout(() => {
           const pending = Object.values(updateBuffer);
