@@ -16,6 +16,7 @@ const VirtualTreeItem = React.memo(
     const speed = node.Speed;
     const vehicleMake = node.make;
     const vehicleSerial = node.SerialNumber;
+    const vehStatusCode = node.vehStatusCode;
 
     return (
       <div
@@ -68,9 +69,16 @@ const VirtualTreeItem = React.memo(
 
         {!hasChildren && (
           <div className="flex items-center gap-2 w-full max-w-full overflow-hidden">
-            <span className="text-muted-foreground text-xs truncate flex-1 min-w-0 flex flex-col">
-              <span> {vehicleMake}</span> <span> {vehicleSerial}</span>
+            <span className="shadow-2xl">
+              <img
+                src={`/assets/images/cars/${vehStatusCode}.png`}
+                alt="car-status"
+              />
             </span>
+            <mark className="text-muted-foreground text-xs truncate flex-1 min-w-0 flex flex-col bg-transparent">
+              <span> {vehicleMake}</span>
+              <span> {vehicleSerial}</span>
+            </mark>
             <span className="text-xs px-2 py-1 bg-accent rounded-md shrink-0 select-none shadow-sm">
               {speed ? speed.toFixed(1) : 0} km/h
             </span>

@@ -1,162 +1,140 @@
 import { create } from "zustand";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
 import { io } from "socket.io-client";
+import { api } from "@/lib/api";
 import { CalcVehicleStatus } from "@/lib/utils";
+import { toast } from "sonner";
 
-// --- Shared update buffer
-let updateBuffer = {};
-let updateTimer = null;
+const initializeVehicleMap = (vehiclesArray) => {
+  const map = new Map();
+  for (const v of vehiclesArray) {
+    if (!v?.SerialNumber) continue;
 
-// --- Merge helper
-const mergeVehicleUpdates = (vehicles, updates) => {
-  const map = new Map(vehicles.map((v) => [v.id || v.SerialNumber, v]));
-  for (const veh of updates) {
-    const key = veh.id || veh.SerialNumber;
-    if (!key) continue;
-    const existing = map.get(key) || {};
-    map.set(key, { ...existing, ...veh });
+    map.set(v.SerialNumber, { ...v, vehStatusCode: CalcVehicleStatus(v) });
   }
-  return Array.from(map.values());
+
+  return map;
 };
 
-export const useVehicleStore = create((set, get) => ({
-  vehicles: [],
-  loading: false,
-  error: null,
-  socket: null,
-  isConnected: false,
+// ---------------- VEHICLE STORE ----------------
+export const useVehicleStore = create((set, get) => {
+  let rafPending = false;
+  let rafBuffer = new Map();
+  let rafId = null;
 
-  fetchVehicles: async (force = false) => {
-    const { loading, vehicles, initSocket, closeSocket, isConnected } = get();
-    if (loading) return;
-    if (!force && vehicles.length > 0) {
-      if (!isConnected) initSocket();
-      return;
-    }
+  const processRafBuffer = () => {
+    rafId = null;
+    if (!rafBuffer.size) return (rafPending = false);
 
-    set({ loading: true, error: null });
-
-    try {
-      const { data, error, status } = await api.getAllVehicles();
-      if (error || status >= 400)
-        throw new Error(error || `Request failed (${status})`);
-      if (!Array.isArray(data))
-        throw new Error("Invalid response format (expected array)");
-
-      // 🆕 Add your new property here
-      const enrichedVehicles = data.map((v) => ({
-        ...v,
-        vehStatusCode: CalcVehicleStatus(v),
-      }));
-
-      set({ vehicles: enrichedVehicles, loading: false, error: null });
-
-      if (data.length > 0) initSocket();
-      else closeSocket();
-    } catch (err) {
-      console.error("Vehicle fetch error:", err);
-      toast.error(err.message || "Failed to fetch vehicles");
-      set({ error: err.message, loading: false });
-      closeSocket();
-    }
-  },
-
-  // --- Initialize Socket (no duplicates)
-  initSocket: () => {
-    const { vehicles, socket, isConnected } = get();
-
-    // ✅ Skip if already connected
-    if (socket && isConnected) {
-      console.debug("Socket already connected — skipping re-init");
-      return;
-    }
-
-    // ✅ Skip if no vehicles
-    if (!vehicles || vehicles.length === 0) {
-      console.warn("No vehicles to track. Socket will not connect.");
-      return;
-    }
-
-    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_IO_URL;
-    if (!SOCKET_URL) {
-      toast.error("Missing NEXT_PUBLIC_SOCKET_IO_URL");
-      return;
-    }
-
-    // 🔒 Clean up any old socket before creating a new one
-    socket?.off?.();
-    socket?.disconnect?.();
-
-    const newSocket = io(`${SOCKET_URL}/consumer`, {
-      transports: ["websocket"],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 3000,
-    });
-
-    // --- Events
-    newSocket.on("connect", () => {
-      set({ isConnected: true });
-      console.debug("Socket connected");
-
-      const serials = vehicles.map((v) => v.SerialNumber).filter(Boolean);
-      serials.forEach((s) => newSocket.emit("track", { serial: s }));
-    });
-
-    newSocket.on("disconnect", () => {
-      console.debug("Socket disconnected");
-      set({ isConnected: false });
-    });
-
-    newSocket.on("reconnect", () => {
-      const serials = get()
-        .vehicles.map((v) => v.SerialNumber)
-        .filter(Boolean);
-      serials.forEach((s) => newSocket.emit("track", { serial: s }));
-    });
-
-    newSocket.on("update", (updateData) => {
-      const updates = Array.isArray(updateData) ? updateData : [updateData];
-      // for (const v of updates) {
-      //   const key = v.id || v.SerialNumber;
-      //   if (key) updateBuffer[key] = v;
-      // }
-      for (const v of updates) {
-        const key = v.id || v.SerialNumber;
-        if (!key) continue;
-
-        // 🧠 Recalculate vehicle status before merging
-        const updatedVeh = {
-          ...v,
-          vehStatusCode: CalcVehicleStatus(v),
-        };
-
-        updateBuffer[key] = updatedVeh;
+    set((state) => {
+      const updatedMap = new Map(state.vehicles);
+      for (const [serial, update] of rafBuffer) {
+        const currentVehicle = updatedMap.get(serial);
+        if (!currentVehicle) continue;
+        updatedMap.set(serial, { ...currentVehicle, ...update });
       }
-      if (!updateTimer) {
-        updateTimer = setTimeout(() => {
-          const pending = Object.values(updateBuffer);
-          updateBuffer = {};
-          updateTimer = null;
-          if (pending.length === 0) return;
-
-          set((state) => ({
-            vehicles: mergeVehicleUpdates(state.vehicles, pending),
-          }));
-        }, 250);
-      }
+      rafBuffer.clear();
+      rafPending = false;
+      return { vehicles: updatedMap };
     });
+  };
 
-    set({ socket: newSocket });
-  },
+  const scheduleRaf = () => {
+    if (!rafPending) {
+      rafPending = true;
+      rafId = requestAnimationFrame(processRafBuffer);
+    }
+  };
 
-  // --- Close Socket
-  closeSocket: () => {
-    const { socket, isConnected } = get();
-    if (!socket && !isConnected) return;
-    socket?.off?.();
-    socket?.disconnect?.();
+  const closeSocketSafe = () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafPending = false;
+    rafBuffer.clear();
+    const socket = get().socket;
+    if (!socket) return;
+    socket.off();
+    socket.disconnect();
     set({ socket: null, isConnected: false });
-  },
-}));
+  };
+
+  return {
+    vehicles: new Map(),
+    loading: false,
+    error: null,
+    socket: null,
+    isConnected: false,
+
+    fetchVehicles: async (force = false) => {
+      const { loading, vehicles, initSocket, isConnected } = get();
+      if (loading) return;
+      if (!force && vehicles.size) return isConnected || initSocket();
+
+      set({ loading: true, error: null });
+      try {
+        const { data, error, status } = await api.getAllVehicles();
+        if (error || status >= 400)
+          throw new Error(error || `Request failed (${status})`);
+        if (!Array.isArray(data)) throw new Error("Invalid vehicles response");
+
+        const map = initializeVehicleMap(data);
+        set({ vehicles: map, loading: false, error: null });
+        map.size ? initSocket() : closeSocketSafe();
+      } catch (err) {
+        console.log({ err });
+
+        console.error("Vehicle fetch error:", err);
+        const errorMessage = err.message || "Failed to fetch vehicles";
+        toast.error(errorMessage);
+        set({ error: errorMessage, loading: false });
+        closeSocketSafe();
+      }
+    },
+
+    initSocket: () => {
+      const { vehicles, socket, isConnected } = get();
+      if (socket && isConnected) return;
+      if (!vehicles.size) return;
+
+      const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_IO_URL;
+      if (!SOCKET_URL) return toast.error("Missing NEXT_PUBLIC_SOCKET_IO_URL");
+
+      closeSocketSafe();
+
+      const newSocket = io(`${SOCKET_URL}/consumer`, {
+        transports: ["websocket"],
+        reconnection: true,
+      });
+
+      const trackAllVehicles = () => {
+        for (const serial of get().vehicles.keys())
+          newSocket.emit("track", { serial });
+      };
+
+      newSocket.on("connect", () => {
+        set({ isConnected: true });
+        trackAllVehicles();
+      });
+      newSocket.on("disconnect", () => set({ isConnected: false }));
+      newSocket.on("reconnect", trackAllVehicles);
+
+      newSocket.on("update", (updateData) => {
+        const list = Array.isArray(updateData) ? updateData : [updateData];
+        for (const v of list) {
+          if (!v?.SerialNumber) continue;
+          try {
+            rafBuffer.set(v.SerialNumber, {
+              ...v,
+              vehStatusCode: CalcVehicleStatus(v),
+            });
+          } catch (err) {
+            console.error("Error processing socket update:", err);
+          }
+        }
+        scheduleRaf();
+      });
+
+      set({ socket: newSocket });
+    },
+
+    closeSocket: closeSocketSafe,
+  };
+});
