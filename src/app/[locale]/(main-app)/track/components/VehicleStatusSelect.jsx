@@ -6,83 +6,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { useVehicleStore } from "@/store/useVehicleStore";
+import { CarFront } from "lucide-react";
+import { useMemo } from "react";
+const VEHICLE_STATUSES = [
+  { value: "all", label: "All" },
+  { value: 1, label: "Running" },
+  { value: 0, label: "Stopped" },
+  { value: 203, label: "Invalid Locations" },
+  { value: 2, label: "Idling" },
+  { value: 101, label: "Over Speed" },
+  { value: 100, label: "Over Street Speed" },
+  { value: 5, label: "Offline" },
+  { value: 204, label: "Sleep mode" },
+  // { value: "exceeding", label: "Late End" },
+  // { value: "accepted", label: "Accepted" },
+  // { value: "unavailable", label: "Unavailable" },
+];
 export function VehicleStatusSelect({ value, onValueChange }) {
-  const VEHICLE_STATUSES = [
-    {
-      value: "all",
-      label: "All",
-      count: 12,
-    },
-    {
-      value: "Running",
-      label: "Running",
-      count: 5,
-    },
-    {
-      value: "Stopped",
-      label: "Stopped",
-      count: 6,
-    },
-    {
-      value: "Invalid_Locations",
-      label: "Invalid Locations",
-      count: 14,
-    },
-    {
-      value: "Idling",
-      label: "Idling",
-      count: 12,
-    },
-    {
-      value: "Over_Speed",
-      label: "Over Speed",
-      count: 9,
-    },
-    {
-      value: "Over_Street_Speed",
-      label: "Over Street Speed",
-      count: 6,
-    },
-    {
-      value: "Sleep_mode",
-      label: "Sleep mode",
-      count: 12,
-    },
-    {
-      value: "Offline",
-      label: "Offline",
-      count: 33,
-    },
-    {
-      value: "Exceeding",
-      label: "Late End",
-      count: 22,
-    },
-    {
-      value: "Accepted",
-      label: "Accepted",
-      count: 15,
-    },
-    {
-      value: "Unavailable",
-      label: "Unavailable",
-      count: 7,
-    },
-  ];
+  const vehicleMap = useVehicleStore((state) => state.vehicles);
+
+  const vehicles = Array.from(vehicleMap.values());
+
+  const statusCounts = useMemo(() => {
+    const counts = {};
+    for (const v of vehicles) {
+      const code = v.vehStatusCode ?? v.VehicleStatus;
+      counts[code] = (counts[code] || 0) + 1;
+    }
+
+    return counts;
+  }, [vehicles]);
+
+  const enrichedStatuses = VEHICLE_STATUSES.map((s) => {
+    return {
+      ...s,
+      count: s.value === "all" ? vehicles.length : statusCounts[s.value] || 0,
+    };
+  });
+
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full  ">
-        <SelectValue placeholder="Select status" />
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select status" className="w-full" />
       </SelectTrigger>
+
       <SelectContent>
-        {VEHICLE_STATUSES.map((status) => (
-          <SelectItem
-            key={status.value}
-            value={status.value}
-            label={status.label}
-            count={status.count}
-          />
+        {enrichedStatuses.map(({ value: statusValue, label, count }, index) => (
+          <SelectItem key={index} value={statusValue}>
+            <div className="flex items-center justify-between w-full gap-2  ">
+              <div className="flex items-center gap-2 min-w-0 w-full">
+                <img
+                  src={`/assets/images/cars/${statusValue}.png`}
+                  alt={`vehicle-status-${statusValue}`}
+                  loading="lazy"
+                />
+                <span className="truncate">{label}</span>
+              </div>
+              <span className="text-muted-foreground text-xs">{count}</span>
+            </div>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>

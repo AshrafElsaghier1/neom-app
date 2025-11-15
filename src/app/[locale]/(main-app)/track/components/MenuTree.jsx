@@ -8,9 +8,7 @@ const MenuTree = () => {
   const [vehicleStatus, setVehicleStatus] = useState("all");
 
   const handleStatusChange = (newStatus) => {
-    setVehicleStatus(newStatus);
-    console.log("[v0] Status changed to:", newStatus);
-    // Add your logic to update the backend or broadcast the change
+    setVehicleStatus(newStatus !== "all" ? +newStatus : "all");
   };
 
   return (
@@ -33,7 +31,7 @@ const MenuTree = () => {
           />
 
           <div className="max-w-full ">
-            <VehicleTree />
+            <VehicleTree statusFilter={vehicleStatus} />
           </div>
         </div>
       </aside>
