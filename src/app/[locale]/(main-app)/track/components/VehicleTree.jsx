@@ -396,14 +396,9 @@ export default function VehicleTree({ statusFilter }) {
 
         // Search filter
         if (term) {
-          const label = node.label?.toLowerCase() || "";
           const make = vehicle.make?.toLowerCase() || "";
           const serial = vehicle.SerialNumber?.toLowerCase() || "";
-          match =
-            match &&
-            (label.includes(term) ||
-              make.includes(term) ||
-              serial.includes(term));
+          match = match && (make.includes(term) || serial.includes(term));
         }
 
         // Recurse into children
