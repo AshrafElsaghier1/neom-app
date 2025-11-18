@@ -41,7 +41,7 @@ const MenuTree = () => {
         className={` cursor-pointer fixed top-20 z-6 p-2 rounded-lg transition-all duration-300 ease-in-out shadow-lg 
           ${
             isMenuOpen
-              ? "bg-[#343838] backdrop-blur-md text-white right-[349px] rounded-r-none"
+              ? " bg-sidebar/80 backdrop-blur-lg  right-[349px] rounded-r-none"
               : "bg-main text-white right-4"
           }
         `}
