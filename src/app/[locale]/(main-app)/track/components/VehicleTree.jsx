@@ -51,14 +51,17 @@ export default function VehicleTree({ statusFilter }) {
     if (!nodes?.length) return [];
 
     const term = searchTerm?.trim().toLowerCase();
+    // normalize status: treat "all" as null, otherwise string
+    const normalizedStatus = status === "all" ? null : String(status);
 
     return nodes
       .map((node) => {
         const vehicle = node.originalData || node;
         let match = true;
 
-        if (status && status !== "all") {
-          match = vehicle.vehStatusCode === status;
+        if (normalizedStatus !== null) {
+          const vehCode = vehicle.vehStatusCode;
+          match = String(vehCode) === normalizedStatus;
         }
 
         if (term) {
