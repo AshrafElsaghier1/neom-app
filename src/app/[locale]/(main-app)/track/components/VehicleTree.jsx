@@ -25,7 +25,6 @@ export default function VehicleTree({ statusFilter }) {
   const [expanded, setExpanded] = useState(new Set());
   const [userCollapsed, setUserCollapsed] = useState(new Set());
   const [search, setSearch] = useState("");
-  const [nodeMap, setNodeMap] = useState(new Map());
 
   const {
     fetchVehicles,
@@ -40,12 +39,11 @@ export default function VehicleTree({ statusFilter }) {
     return () => closeSocket();
   }, []);
 
-  // ---------------- Build tree from vehicles ----------------
+  // ---------------- Build tree and nodeMap ----------------
   useEffect(() => {
     const vehiclesArray = Array.from(vehicleMap.values());
     const tree = transformVehiclesToTree(vehiclesArray);
     setTreeData(tree);
-    setNodeMap(buildNodeMap(tree));
   }, [vehicleMap]);
 
   // ---------------- Filter Tree ----------------
@@ -59,24 +57,20 @@ export default function VehicleTree({ statusFilter }) {
         const vehicle = node.originalData || node;
         let match = true;
 
-        // Status filter
         if (status && status !== "all") {
           match = vehicle.vehStatusCode === status;
         }
 
-        // Search filter
         if (term) {
           const make = vehicle.make?.toLowerCase() || "";
           const serial = vehicle.SerialNumber?.toLowerCase() || "";
           match = match && (make.includes(term) || serial.includes(term));
         }
 
-        // Recurse into children
         const children = node.children?.length
           ? filterTree(node.children, searchTerm, status)
           : [];
 
-        // Include node if match or has matching children
         if (match || children.length)
           return { ...node, children, count: children.length };
         return null;
@@ -84,10 +78,15 @@ export default function VehicleTree({ statusFilter }) {
       .filter(Boolean);
   }, []);
 
-  // ---------------- Filtered Tree ----------------
   const filteredTree = useMemo(
     () => filterTree(treeData, search, statusFilter),
     [treeData, search, statusFilter, filterTree]
+  );
+
+  // ---------------- Build filteredNodeMap for quick access ----------------
+  const filteredNodeMap = useMemo(
+    () => buildNodeMap(filteredTree),
+    [filteredTree]
   );
 
   // ---------------- Auto expand for search ----------------
@@ -122,13 +121,6 @@ export default function VehicleTree({ statusFilter }) {
     [filteredTree, expanded]
   );
 
-  // ---------------- Visible vehicle IDs ----------------
-  const visibleVehicleIds = useMemo(
-    () => flatData.filter((n) => !n.children?.length).map(getNodeId),
-    [flatData]
-  );
-
-  // ---------------- Virtualizer ----------------
   const parentRef = useRef(null);
   const virtualizer = useVirtualizer({
     count: flatData.length,
@@ -157,100 +149,116 @@ export default function VehicleTree({ statusFilter }) {
     });
   }, []);
 
-  // ---------------- Checkbox Logic ----------------
-  const getAllDescendants = useCallback(
-    (id) => {
-      const node = nodeMap.get(id)?.node;
-      if (!node?.children?.length) return [];
-      const result = [];
-      const stack = [...node.children];
-      while (stack.length) {
-        const child = stack.pop();
-        const childId = getNodeId(child);
-        result.push(childId);
-        if (child.children?.length) stack.push(...child.children);
-      }
-      return result;
-    },
-    [nodeMap]
-  );
+  // ---------------- Precompute descendant LEAF ids for filtered tree ----------------
+  // Map: nodeId -> array of descendant leaf nodeIds (for vehicles only)
+  const descendantLeafIdsMap = useMemo(() => {
+    const map = new Map();
 
+    // helper: collect leaf ids for a node
+    const collectLeafIds = (node) => {
+      const stack = [node];
+      const leafIds = [];
+
+      while (stack.length) {
+        const cur = stack.pop();
+        if (!cur) continue;
+        if (!cur.children || cur.children.length === 0) {
+          leafIds.push(getNodeId(cur));
+        } else {
+          // push children
+          for (let i = 0; i < cur.children.length; i++) {
+            stack.push(cur.children[i]);
+          }
+        }
+      }
+
+      return leafIds;
+    };
+
+    // walk filteredTree roots and fill map for each node (groups + vehicles)
+    const walk = (nodes) => {
+      for (const n of nodes) {
+        const id = getNodeId(n);
+        // store leaf ids for this node
+        map.set(id, collectLeafIds(n));
+
+        // recurse children to set map entries for them too
+        if (n.children?.length) walk(n.children);
+      }
+    };
+
+    walk(filteredTree);
+    return map;
+  }, [filteredTree]);
+
+  // ---------------- Get filtered descendants via precomputed map ----------------
+  const getFilteredDescendants = useCallback(
+    (id) => {
+      const arr = descendantLeafIdsMap.get(id);
+      return arr ? arr.slice() : []; // return copy to avoid accidental mutation
+    },
+    [descendantLeafIdsMap]
+  );
+  // ---------------- Precompute descendant LEAF ids for filtered tree ----------------
+  // Map: nodeId -> array of descendant leaf nodeIds (for vehicles only)
+
+  // ---------------- Checkbox Logic ----------------
   const toggleCheck = useCallback(
     (id, isChecked) => {
-      const node = nodeMap.get(id)?.node;
-      if (!node) return;
-
-      const newChecked = new Set(checked);
-
-      const getVisibleDescendants = (node) => {
-        const result = [];
-        const stack = [...(node.children || [])];
-        while (stack.length) {
-          const child = stack.pop();
-          const childId = getNodeId(child);
-          if (!search.trim() || visibleVehicleIds.includes(childId))
-            result.push(childId);
-          if (child.children?.length) stack.push(...child.children);
-        }
-        return result;
-      };
-
-      if (node.children?.length) {
-        const targetIds = getVisibleDescendants(node);
-        targetIds.forEach((cid) =>
-          isChecked ? newChecked.add(cid) : newChecked.delete(cid)
-        );
-      } else {
-        isChecked ? newChecked.add(id) : newChecked.delete(id);
-      }
-
-      setChecked(newChecked);
+      const targetIds = getFilteredDescendants(id);
+      setChecked((prev) => {
+        const next = new Set(prev);
+        targetIds.forEach((cid) => {
+          if (isChecked) next.add(cid);
+          else next.delete(cid);
+        });
+        return next;
+      });
     },
-    [checked, nodeMap, search, visibleVehicleIds]
+    [getFilteredDescendants]
   );
 
   const getIndeterminateState = useCallback(
     (node) => {
       if (!node.children?.length) return false;
-      const allIds = getAllDescendants(getNodeId(node));
+      const allIds = getFilteredDescendants(getNodeId(node));
       const selectedCount = allIds.filter((id) => checked.has(id)).length;
       return selectedCount > 0 && selectedCount < allIds.length;
     },
-    [checked, getAllDescendants]
+    [checked, getFilteredDescendants]
   );
 
   // ---------------- Select All / Clear ----------------
-  const allVehicleIds = useMemo(
-    () =>
-      Array.from(nodeMap.values())
-        .map((v) => v.node)
-        .filter((n) => !n.children?.length)
-        .map(getNodeId),
-    [nodeMap]
-  );
-
-  const allSelected = useMemo(() => {
-    const ids = search.trim() ? visibleVehicleIds : allVehicleIds;
-    return ids.length > 0 && ids.every((id) => checked.has(id));
-  }, [checked, visibleVehicleIds, allVehicleIds, search]);
-
   const selectAll = useCallback(() => {
+    const allIds = Array.from(filteredNodeMap.values())
+      .filter(({ node }) => !node.children?.length)
+      .map(({ node }) => getNodeId(node));
+
     setChecked((prev) => {
       const next = new Set(prev);
-      const ids = search.trim() ? visibleVehicleIds : allVehicleIds;
-      ids.forEach((id) => next.add(id));
+      allIds.forEach((id) => next.add(id));
       return next;
     });
-  }, [visibleVehicleIds, allVehicleIds, search]);
+  }, [filteredNodeMap]);
 
   const clearSelection = useCallback(() => {
+    const allIds = Array.from(filteredNodeMap.values())
+      .filter(({ node }) => !node.children?.length)
+      .map(({ node }) => getNodeId(node));
+
     setChecked((prev) => {
       const next = new Set(prev);
-      const ids = search.trim() ? visibleVehicleIds : allVehicleIds;
-      ids.forEach((id) => next.delete(id));
+      allIds.forEach((id) => next.delete(id));
       return next;
     });
-  }, [visibleVehicleIds, allVehicleIds, search]);
+  }, [filteredNodeMap]);
+
+  const allSelected = useMemo(() => {
+    const allIds = Array.from(filteredNodeMap.values())
+      .filter(({ node }) => !node.children?.length)
+      .map(({ node }) => getNodeId(node));
+    return allIds.length > 0 && allIds.every((id) => checked.has(id));
+  }, [checked, filteredNodeMap]);
 
   // ---------------- Render ----------------
   return (
@@ -311,14 +319,16 @@ export default function VehicleTree({ statusFilter }) {
                 const node = flatData[v.index];
                 const nodeId = getNodeId(node);
                 const isChecked = node.children?.length
-                  ? getAllDescendants(nodeId).every((cid) => checked.has(cid))
+                  ? getFilteredDescendants(nodeId).every((cid) =>
+                      checked.has(cid)
+                    )
                   : checked.has(nodeId);
                 const isIndeterminate = getIndeterminateState(node);
                 const isExpanded = expanded.has(nodeId);
 
                 return (
                   <div
-                    key={nodeId}
+                    key={v.key}
                     style={{
                       height: `${v.size}px`,
                       transform: `translateY(${v.start}px)`,
