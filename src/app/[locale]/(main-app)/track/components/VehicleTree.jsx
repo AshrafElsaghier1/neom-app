@@ -25,8 +25,15 @@ export default function VehicleTree({ statusFilter }) {
   const [expanded, setExpanded] = useState(new Set());
   const [userCollapsed, setUserCollapsed] = useState(new Set());
   const [search, setSearch] = useState("");
-
-  const { fetchVehicles, closeSocket, vehicles, loading } = useVehicleStore();
+  const [pendingPins, setPendingPins] = useState([]);
+  const {
+    fetchVehicles,
+    closeSocket,
+    vehicles,
+    loading,
+    pinVehicle,
+    unpinVehicle,
+  } = useVehicleStore();
 
   // ---------------- Fetch vehicles ----------------
   useEffect(() => {
@@ -198,13 +205,13 @@ export default function VehicleTree({ statusFilter }) {
     },
     [descendantLeafIdsMap]
   );
-  // ---------------- Precompute descendant LEAF ids for filtered tree ----------------
   // Map: nodeId -> array of descendant leaf nodeIds (for vehicles only)
 
-  // ---------------- Checkbox Logic ----------------
   const toggleCheck = useCallback(
     (id, isChecked) => {
       const targetIds = getFilteredDescendants(id);
+
+      // Update local state immediately
       setChecked((prev) => {
         const next = new Set(prev);
         targetIds.forEach((cid) => {
@@ -213,6 +220,8 @@ export default function VehicleTree({ statusFilter }) {
         });
         return next;
       });
+      // Defer pin/unpin to useEffect
+      setPendingPins((prev) => [...prev, { ids: targetIds, pin: isChecked }]);
     },
     [getFilteredDescendants]
   );
@@ -226,8 +235,19 @@ export default function VehicleTree({ statusFilter }) {
     },
     [checked, getFilteredDescendants]
   );
+  useEffect(() => {
+    if (!pendingPins.length) return;
 
-  // ---------------- Select All / Clear ----------------
+    pendingPins.forEach(({ ids, pin }) => {
+      ids.forEach((id) => {
+        if (pin) pinVehicle(id);
+        else unpinVehicle(id);
+      });
+    });
+
+    setPendingPins([]); // reset
+  }, [pendingPins, pinVehicle, unpinVehicle]);
+
   const selectAll = useCallback(() => {
     const allIds = Array.from(filteredNodeMap.values())
       .filter(({ node }) => !node.children?.length)
@@ -238,6 +258,7 @@ export default function VehicleTree({ statusFilter }) {
       allIds.forEach((id) => next.add(id));
       return next;
     });
+    setPendingPins([{ ids: allIds, pin: true }]);
   }, [filteredNodeMap]);
 
   const clearSelection = useCallback(() => {
@@ -250,6 +271,7 @@ export default function VehicleTree({ statusFilter }) {
       allIds.forEach((id) => next.delete(id));
       return next;
     });
+    setPendingPins([{ ids: allIds, pin: false }]);
   }, [filteredNodeMap]);
 
   const allSelected = useMemo(() => {
