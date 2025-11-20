@@ -143,9 +143,10 @@ export const useVehicleStore = create((set, get) => {
         if (error || status >= 400) {
           throw new Error(error || `Request failed (${status})`);
         }
-        if (!Array.isArray(data)) throw new Error("Invalid vehicle data");
+        if (!Array.isArray(vehicleData))
+          throw new Error("Invalid vehicle vehicleData");
 
-        const { map, statusCounts } = initializeVehicleMap(data);
+        const { map, statusCounts } = initializeVehicleMap(vehicleData);
 
         set({
           vehicles: map,
