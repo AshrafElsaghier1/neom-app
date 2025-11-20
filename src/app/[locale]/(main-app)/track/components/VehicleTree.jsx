@@ -46,39 +46,40 @@ export default function VehicleTree({ statusFilter }) {
     setTreeData(tree);
   }, [vehicleMap]);
 
-  // ---------------- Filter Tree ----------------
+  // ---------------- High-Performance Filter Tree ----------------
   const filterTree = useCallback((nodes, searchTerm, status) => {
     if (!nodes?.length) return [];
 
     const term = searchTerm?.trim().toLowerCase();
-    // normalize status: treat "all" as null, otherwise string
     const normalizedStatus = status === "all" ? null : String(status);
 
-    return nodes
-      .map((node) => {
-        const vehicle = node.originalData || node;
-        let match = true;
+    const result = [];
 
-        if (normalizedStatus !== null) {
-          const vehCode = vehicle.vehStatusCode;
-          match = String(vehCode) === normalizedStatus;
-        }
+    for (const node of nodes) {
+      const vehicle = node.originalData || node;
+      let match =
+        normalizedStatus === null ||
+        String(vehicle.vehStatusCode) === normalizedStatus;
 
-        if (term) {
-          const make = vehicle.make?.toLowerCase() || "";
-          const serial = vehicle.SerialNumber?.toLowerCase() || "";
-          match = match && (make.includes(term) || serial.includes(term));
-        }
+      if (term) {
+        const make = vehicle.make || "";
+        const serial = vehicle.SerialNumber || "";
+        match =
+          match &&
+          (make.toLowerCase().includes(term) ||
+            serial.toLowerCase().includes(term));
+      }
 
-        const children = node.children?.length
-          ? filterTree(node.children, searchTerm, status)
-          : [];
+      const children = node.children?.length
+        ? filterTree(node.children, searchTerm, status)
+        : [];
 
-        if (match || children.length)
-          return { ...node, children, count: children.length };
-        return null;
-      })
-      .filter(Boolean);
+      if (match || children.length) {
+        result.push({ ...node, children, count: children.length });
+      }
+    }
+
+    return result;
   }, []);
 
   const filteredTree = useMemo(
