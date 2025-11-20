@@ -16,34 +16,25 @@ const VEHICLE_STATUSES = [
   { value: 203, label: "Invalid Locations" },
   { value: 2, label: "Idling" },
   { value: 101, label: "Over Speed" },
-  { value: 100, label: "Over Street Speed" },
   { value: 5, label: "Offline" },
   { value: 204, label: "Sleep mode" },
+  // { value: 100, label: "Over Street Speed" },
   // { value: "exceeding", label: "Late End" },
   // { value: "accepted", label: "Accepted" },
   // { value: "unavailable", label: "Unavailable" },
 ];
 export function VehicleStatusSelect({ value, onValueChange }) {
-  const vehicleMap = useVehicleStore((state) => state.vehicles);
+  const vehicleMap = useVehicleStore((s) => s.vehicles);
+  const statusCounts = useVehicleStore((s) => s.statusCounts);
 
-  const vehicles = Array.from(vehicleMap.values());
+  const vehicles = useMemo(() => Array.from(vehicleMap.values()), [vehicleMap]);
 
-  const statusCounts = useMemo(() => {
-    const counts = {};
-    for (const v of vehicles) {
-      const code = v.vehStatusCode ?? v.VehicleStatus;
-      counts[code] = (counts[code] || 0) + 1;
-    }
-
-    return counts;
-  }, [vehicles]);
-
-  const enrichedStatuses = VEHICLE_STATUSES.map((s) => {
-    return {
+  const enrichedStatuses = useMemo(() => {
+    return VEHICLE_STATUSES.map((s) => ({
       ...s,
       count: s.value === "all" ? vehicles.length : statusCounts[s.value] || 0,
-    };
-  });
+    }));
+  }, [vehicles, statusCounts]);
 
   return (
     <Select value={value} onValueChange={onValueChange}>

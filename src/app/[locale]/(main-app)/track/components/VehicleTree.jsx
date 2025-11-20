@@ -26,12 +26,7 @@ export default function VehicleTree({ statusFilter }) {
   const [userCollapsed, setUserCollapsed] = useState(new Set());
   const [search, setSearch] = useState("");
 
-  const {
-    fetchVehicles,
-    closeSocket,
-    vehicles: vehicleMap,
-    loading,
-  } = useVehicleStore();
+  const { fetchVehicles, closeSocket, vehicles, loading } = useVehicleStore();
 
   // ---------------- Fetch vehicles ----------------
   useEffect(() => {
@@ -41,10 +36,10 @@ export default function VehicleTree({ statusFilter }) {
 
   // ---------------- Build tree and nodeMap ----------------
   useEffect(() => {
-    const vehiclesArray = Array.from(vehicleMap.values());
+    const vehiclesArray = Array.from(vehicles.values());
     const tree = transformVehiclesToTree(vehiclesArray);
     setTreeData(tree);
-  }, [vehicleMap]);
+  }, [vehicles]);
 
   // ---------------- High-Performance Filter Tree ----------------
   const filterTree = useCallback((nodes, searchTerm, status) => {
