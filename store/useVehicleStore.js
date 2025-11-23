@@ -116,17 +116,17 @@ export const useVehicleStore = create((set, get) => {
     isConnected: false,
     pinned: new Set(),
 
-    pinVehicle: (id) =>
+    pinMany: (ids) =>
       set((state) => {
         const next = new Set(state.pinned);
-        next.add(id);
+        ids.forEach((id) => next.add(id));
         return { pinned: next };
       }),
 
-    unpinVehicle: (id) =>
+    unpinMany: (ids) =>
       set((state) => {
         const next = new Set(state.pinned);
-        next.delete(id);
+        ids.forEach((id) => next.delete(id));
         return { pinned: next };
       }),
 

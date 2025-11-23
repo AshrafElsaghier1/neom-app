@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
+import React, { useMemo } from "react";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet.markercluster"; // Import the plugin
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -38,7 +37,7 @@ const MapInner = () => {
           attribution='&copy; <a href="https://www.saferoad.com.sa">Saferoad</a>'
         />
 
-        {/* <MarkerCluster vehicles={pinnedVehicles} /> */}
+        <MarkerCluster vehicles={pinnedVehicles} />
       </MapContainer>
     </div>
   );
