@@ -7,7 +7,7 @@ import { data as vehicleData } from "@/data";
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_IO_URL;
 const initializeVehicleMap = (vehiclesArray) => {
   const map = new Map();
-  const statusCounts = {}; // ADDED
+  const statusCounts = {};
 
   for (const v of vehiclesArray) {
     if (!v?.SerialNumber) continue;
@@ -20,7 +20,7 @@ const initializeVehicleMap = (vehiclesArray) => {
       vehStatusCode: code,
     });
   }
-  return { map, statusCounts }; // ADDED
+  return { map, statusCounts };
 };
 
 // ---------------- VEHICLE STORE ----------------
@@ -41,7 +41,7 @@ export const useVehicleStore = create((set, get) => {
 
     set((state) => {
       const updatedMap = new Map(state.vehicles);
-      const statusCounts = { ...state.statusCounts }; // ADDED
+      const statusCounts = { ...state.statusCounts };
 
       for (const [serial, update] of rafBuffer) {
         const existing = updatedMap.get(serial);
@@ -143,10 +143,10 @@ export const useVehicleStore = create((set, get) => {
         if (error || status >= 400) {
           throw new Error(error || `Request failed (${status})`);
         }
-        if (!Array.isArray(vehicleData))
+        if (!Array.isArray(data))
           throw new Error("Invalid vehicle vehicleData");
 
-        const { map, statusCounts } = initializeVehicleMap(vehicleData);
+        const { map, statusCounts } = initializeVehicleMap(data);
 
         set({
           vehicles: map,
