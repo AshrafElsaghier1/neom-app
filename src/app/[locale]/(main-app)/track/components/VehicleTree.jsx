@@ -19,13 +19,14 @@ import {
   transformVehiclesToTree,
 } from "@/lib/utils";
 
-export default function VehicleTree({ statusFilter }) {
+export default function VehicleTree({ statusFilter, onLastSelectedSerialChange }) {
   const [treeData, setTreeData] = useState([]);
   const [checked, setChecked] = useState(new Set());
   const [expanded, setExpanded] = useState(new Set());
   const [userCollapsed, setUserCollapsed] = useState(new Set());
   const [search, setSearch] = useState("");
   const [pendingPins, setPendingPins] = useState([]);
+  const [lastSelectedSerial, setLastSelectedSerial] = useState(null);
   const { fetchVehicles, closeSocket, vehicles, loading, pinMany, unpinMany } =
     useVehicleStore();
 
@@ -215,8 +216,14 @@ export default function VehicleTree({ statusFilter }) {
       });
 
       setPendingPins((prev) => [...prev, { ids: targetIds, pin: isChecked }]);
+      // Track the last (just interacted) vehicle (id is always most recent)
+      setLastSelectedSerial(id);
+      // Inform parent if required
+      if (onLastSelectedSerialChange) {
+        onLastSelectedSerialChange(id);
+      }
     },
-    [getFilteredDescendants]
+    [getFilteredDescendants, onLastSelectedSerialChange]
   );
 
   const getIndeterminateState = useCallback(

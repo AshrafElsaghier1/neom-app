@@ -12,7 +12,7 @@ import MarkerCluster from "./VehicleMarker";
 
 // Marker Cluster Component
 
-const MapInner = () => {
+const MapInner = ({ lastSelectedSerial }) => {
   const vehicles = useVehicleStore((s) => s.vehicles);
   const pinned = useVehicleStore((s) => s.pinned);
 
@@ -36,8 +36,7 @@ const MapInner = () => {
           subdomains={["mt0", "mt1", "mt2", "mt3"]}
           attribution='&copy; <a href="https://www.saferoad.com.sa">Saferoad</a>'
         />
-
-        <MarkerCluster vehicles={pinnedVehicles} />
+        <MarkerCluster pinnedVehicles={pinnedVehicles} lastSelectedSerial={lastSelectedSerial} />
       </MapContainer>
     </div>
   );
