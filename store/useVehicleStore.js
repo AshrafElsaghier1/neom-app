@@ -81,7 +81,7 @@ export const useVehicleStore = create((set, get) => {
   const scheduleRaf = () => {
     if (!rafPending) {
       rafPending = true;
-      rafId = setTimeout(processRafBuffer, 10000);
+      rafId = setTimeout(processRafBuffer, 5000);
     }
   };
 
