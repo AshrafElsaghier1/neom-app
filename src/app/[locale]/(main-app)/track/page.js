@@ -9,7 +9,7 @@ const Track = () => {
   return (
     <section>
       <MenuTree setLastSelectedSerial={setLastSelectedSerial} />
-      <MapInner lastSelectedSerial={lastSelectedSerial} />
+      <MapInner lastSelectedSerial={lastSelectedSerial} onMarkerClick={setLastSelectedSerial} />
     </section>
   );
 };

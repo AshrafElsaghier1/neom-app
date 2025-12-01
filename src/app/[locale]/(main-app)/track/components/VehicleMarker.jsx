@@ -15,7 +15,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
-const MarkerCluster = ({ pinnedVehicles = [], lastSelectedSerial }) => {
+const MarkerCluster = ({ pinnedVehicles = [], lastSelectedSerial, onMarkerClick }) => {
   const map = useMap();
   const clusterRef = useRef(null);
   const markersRef = useRef({});
@@ -40,14 +40,20 @@ const MarkerCluster = ({ pinnedVehicles = [], lastSelectedSerial }) => {
 
       const marker = L.marker([Latitude, Longitude], {
         icon: getVehicleIcon(vehStatusCode),
-      }).bindPopup(`<b>${SerialNumber}</b><br/>Speed: ${Speed} KM/H`);
+      })
+        .bindPopup(`<b>${SerialNumber}</b><br/>Speed: ${Speed} KM/H`)
+        .on('click', () => {
+          if (onMarkerClick) {
+            onMarkerClick(SerialNumber);
+          }
+        });
 
       markersRef.current[SerialNumber] = marker;
       clusterRef.current.addLayer(marker);
     });
 
     map.addLayer(clusterRef.current);
-  }, [pinnedVehicles]);
+  }, [pinnedVehicles, onMarkerClick]);
 
   // --- When user selects one vehicle (focus on it) ---
   useEffect(() => {
