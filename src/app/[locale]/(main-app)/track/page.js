@@ -6,10 +6,19 @@ import MenuTree from "./components/MenuTree";
 
 const Track = () => {
   const [lastSelectedSerial, setLastSelectedSerial] = useState(null);
+
+  const handleVehicleUnpinned = () => {
+    setLastSelectedSerial(null);
+  };
+
   return (
     <section>
       <MenuTree setLastSelectedSerial={setLastSelectedSerial} />
-      <MapInner lastSelectedSerial={lastSelectedSerial} onMarkerClick={setLastSelectedSerial} />
+      <MapInner
+        lastSelectedSerial={lastSelectedSerial}
+        onMarkerClick={setLastSelectedSerial}
+        onVehicleUnpinned={handleVehicleUnpinned}
+      />
     </section>
   );
 };
