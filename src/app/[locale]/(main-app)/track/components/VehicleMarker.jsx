@@ -164,11 +164,11 @@ const MarkerCluster = ({
       return;
     }
 
-    // 3) Reset map when nothing pinned
+    // 3) Just close popup when nothing pinned (preserve user's view)
     if (pinnedVehicles.length === 0) {
       map.closePopup();
-      map.flyTo([23.8859, 45.0792], 6);
-    }
+      // Removed automatic flyTo to preserve user's current map view
+     return;}
   }, [lastSelectedSerial, pinnedVehicles]);
 
   return null;
