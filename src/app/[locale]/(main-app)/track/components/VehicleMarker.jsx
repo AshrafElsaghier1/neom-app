@@ -31,16 +31,19 @@ const MarkerCluster = ({
   const prevPinnedRef = useRef([]);
   const prevSelectedRef = useRef(null);
 
-  // 🔥 NEW: controls automatic refocusing behavior
-  const shouldRefitRef = useRef(true);
+  // Controls whether map should refocus
+  const shouldRefitRef = useRef(false);
+
+  /* --------------------------------------------------------------
+      Disable auto-refit when user moves or zooms the map
+  -------------------------------------------------------------- */
   useEffect(() => {
     if (!map) return;
 
     const stopAuto = () => {
-      shouldRefitRef.current = true;
+      shouldRefitRef.current = false;
     };
 
-    // Any manual interaction disables auto-focus
     map.on("zoomstart", stopAuto);
     map.on("movestart", stopAuto);
 
@@ -50,6 +53,9 @@ const MarkerCluster = ({
     };
   }, [map]);
 
+  /* --------------------------------------------------------------
+      Detect when a vehicle is unpinned
+  -------------------------------------------------------------- */
   useEffect(() => {
     const prev = prevPinnedRef.current.map((v) => v.SerialNumber);
     const now = pinnedVehicles.map((v) => v.SerialNumber);
@@ -61,18 +67,34 @@ const MarkerCluster = ({
     ) {
       onVehicleUnpinned?.();
     }
-
-    prevPinnedRef.current = pinnedVehicles;
   }, [pinnedVehicles, lastSelectedSerial, onVehicleUnpinned]);
 
+  /* --------------------------------------------------------------
+      Enable Auto-Focus when user selects a GROUP / BULK / ALL
+  -------------------------------------------------------------- */
+  useEffect(() => {
+    const prevCount = prevPinnedRef.current.length;
+    const nowCount = pinnedVehicles.length;
+
+    // If user added more vehicles → auto-focus
+    if (nowCount > prevCount) {
+      shouldRefitRef.current = true;
+    }
+
+    prevPinnedRef.current = pinnedVehicles;
+  }, [pinnedVehicles]);
+
+  /* --------------------------------------------------------------
+      Create cluster group once
+  -------------------------------------------------------------- */
   useEffect(() => {
     if (!map || clusterRef.current) return;
 
     const cluster = L.markerClusterGroup({
       maxClusterRadius: 50,
-      spiderfyOnMaxZoom: true,
-      chunkedLoading: true,
-      zoomToBoundsOnClick: true,
+      spiderfyOnMaxZoom: false,
+      chunkedLoading: false,
+      zoomToBoundsOnClick: false,
     });
 
     map.addLayer(cluster);
@@ -86,12 +108,14 @@ const MarkerCluster = ({
     };
   }, [map]);
 
+  /* --------------------------------------------------------------
+      Add / Update / Remove markers
+  -------------------------------------------------------------- */
   useEffect(() => {
     if (!clusterRef.current) return;
 
     const cluster = clusterRef.current;
     const currentMarkers = markersRef.current;
-
     const newSerials = new Set(pinnedVehicles.map((v) => v.SerialNumber));
 
     const removeList = [];
@@ -105,14 +129,13 @@ const MarkerCluster = ({
       }
     });
 
-    // Add & update
+    // Add + Update
     pinnedVehicles.forEach((v) => {
       if (!v.Latitude || !v.Longitude) return;
 
       const serial = v.SerialNumber;
       const direction = v.Direction || 0;
       const pos = [v.Latitude, v.Longitude];
-
       const existing = currentMarkers[serial];
 
       if (existing) {
@@ -130,9 +153,9 @@ const MarkerCluster = ({
           existing._direction = direction;
         }
 
-        const newContent = `<b>${serial}</b><br/>Speed: ${v.Speed} KM/H`;
-        if (existing.getPopup().getContent() !== newContent) {
-          existing.setPopupContent(newContent);
+        const popupContent = `<b>${serial}</b><br/>Speed: ${v.Speed} KM/H`;
+        if (existing.getPopup().getContent() !== popupContent) {
+          existing.setPopupContent(popupContent);
         }
       } else {
         const marker = L.marker(pos, {
@@ -153,6 +176,12 @@ const MarkerCluster = ({
     if (addList.length) cluster.addLayers(addList);
   }, [pinnedVehicles, onMarkerClick]);
 
+  /* --------------------------------------------------------------
+      Auto-Focus Logic for:
+      - Single Vehicles
+      - Groups
+      - All
+  -------------------------------------------------------------- */
   useEffect(() => {
     if (!map) return;
 
@@ -160,51 +189,52 @@ const MarkerCluster = ({
     const prevSelected = prevSelectedRef.current;
     prevSelectedRef.current = lastSelectedSerial;
 
-    // If user made a new selection → allow auto focus ONCE
+    // If user selected a new vehicle
     if (lastSelectedSerial !== prevSelected) {
       shouldRefitRef.current = true;
     }
 
-    // ⛔ If user moved map → do NOT auto-zoom
+    // If user has moved the map → stop auto-focus
     if (!shouldRefitRef.current) return;
 
-    /* --- Existing logic remains --- */
+    map.closePopup();
 
+    /* ---- 1) Focus on SINGLE vehicle ---- */
     if (lastSelectedSerial) {
       const m = markers[lastSelectedSerial];
       if (m) {
-        map.closePopup();
         m.openPopup();
         map.flyTo(m.getLatLng(), 14, { animate: true });
       }
       return;
     }
 
+    /* ---- 2) Zero vehicles → do nothing ---- */
     if (pinnedVehicles.length === 0) return;
 
+    /* ---- 3) Single selected vehicle (without lastSelectedSerial) ---- */
     if (pinnedVehicles.length === 1) {
       const v = pinnedVehicles[0];
       const m = markers[v.SerialNumber];
       if (m) {
-        map.closePopup();
         m.openPopup();
-        map.flyTo(m.getLatLng(), 14, { animate: true });
+        map.flyTo(m.getLatLng(), 14, { animate: false });
       }
       return;
     }
 
+    /* ---- 4) Multiple vehicles → fit bounds ---- */
     const bounds = L.latLngBounds([]);
+
     pinnedVehicles.forEach((v) => {
       const m = markers[v.SerialNumber];
       if (m) bounds.extend(m.getLatLng());
     });
 
     if (bounds.isValid()) {
-      map.closePopup();
-      map.flyToBounds(bounds, { padding: [50, 50], animate: true });
+      map.flyToBounds(bounds, { padding: [50, 50], animate: false });
     }
   }, [lastSelectedSerial, pinnedVehicles, map]);
-
 
   return null;
 };
