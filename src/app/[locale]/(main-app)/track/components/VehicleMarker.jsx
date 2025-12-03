@@ -33,6 +33,22 @@ const MarkerCluster = ({
 
   // 🔥 NEW: controls automatic refocusing behavior
   const shouldRefitRef = useRef(true);
+  useEffect(() => {
+    if (!map) return;
+
+    const stopAuto = () => {
+      shouldRefitRef.current = true;
+    };
+
+    // Any manual interaction disables auto-focus
+    map.on("zoomstart", stopAuto);
+    map.on("movestart", stopAuto);
+
+    return () => {
+      map.off("zoomstart", stopAuto);
+      map.off("movestart", stopAuto);
+    };
+  }, [map]);
 
   useEffect(() => {
     const prev = prevPinnedRef.current.map((v) => v.SerialNumber);
@@ -54,9 +70,9 @@ const MarkerCluster = ({
 
     const cluster = L.markerClusterGroup({
       maxClusterRadius: 50,
-      spiderfyOnMaxZoom: false,
-      chunkedLoading: false,
-      zoomToBoundsOnClick: false,
+      spiderfyOnMaxZoom: true,
+      chunkedLoading: true,
+      zoomToBoundsOnClick: true,
     });
 
     map.addLayer(cluster);
@@ -142,43 +158,41 @@ const MarkerCluster = ({
 
     const markers = markersRef.current;
     const prevSelected = prevSelectedRef.current;
-
     prevSelectedRef.current = lastSelectedSerial;
 
-    // 🟢 If selecting a single vehicle
+    // If user made a new selection → allow auto focus ONCE
+    if (lastSelectedSerial !== prevSelected) {
+      shouldRefitRef.current = true;
+    }
+
+    // ⛔ If user moved map → do NOT auto-zoom
+    if (!shouldRefitRef.current) return;
+
+    /* --- Existing logic remains --- */
+
     if (lastSelectedSerial) {
       const m = markers[lastSelectedSerial];
       if (m) {
         map.closePopup();
         m.openPopup();
-        map.flyTo(m.getLatLng(), 14, { animate: false });
+        map.flyTo(m.getLatLng(), 14, { animate: true });
       }
       return;
     }
 
-    // 🟢 If deselecting a vehicle
-    if (prevSelected && !lastSelectedSerial) {
-      map.closePopup();
-    }
+    if (pinnedVehicles.length === 0) return;
 
-    // 🟡 If zero selected → DO NOTHING (NO FOCUS)
-    if (pinnedVehicles.length === 0) {
-      return;
-    }
-
-    // 🟢 If one selected → ALWAYS FOCUS
     if (pinnedVehicles.length === 1) {
       const v = pinnedVehicles[0];
       const m = markers[v.SerialNumber];
       if (m) {
         map.closePopup();
         m.openPopup();
-        map.flyTo(m.getLatLng(), 14, { animate: false });
+        map.flyTo(m.getLatLng(), 14, { animate: true });
       }
       return;
     }
 
-    // 🔥🔥 Multiple vehicles → ALWAYS FOCUS (select all or group)
     const bounds = L.latLngBounds([]);
     pinnedVehicles.forEach((v) => {
       const m = markers[v.SerialNumber];
@@ -187,9 +201,10 @@ const MarkerCluster = ({
 
     if (bounds.isValid()) {
       map.closePopup();
-      map.flyToBounds(bounds, { padding: [50, 50], animate: false });
+      map.flyToBounds(bounds, { padding: [50, 50], animate: true });
     }
   }, [lastSelectedSerial, pinnedVehicles, map]);
+
 
   return null;
 };
