@@ -11,9 +11,8 @@ const getVehicleIcon = (statusCode, angle = 0) =>
   L.divIcon({
     className: "rotated-marker",
     html: `
-      <div style="transform: rotate(${angle}deg);">
-        <img src="/assets/images/cars/map/${statusCode}.png"
-         />
+      <div style="transform: rotate(${angle}deg); transition: transform 0.3s ease;">
+        <img src="/assets/images/cars/map/${statusCode}.png"/>
       </div>
     `,
     iconSize: [35, 35],
@@ -30,41 +29,46 @@ const MarkerCluster = ({
   const clusterRef = useRef();
   const markersRef = useRef({});
   const prevPinnedRef = useRef([]);
+  const prevSelectedRef = useRef(null);
 
-  /* ============================================================
-     Detect when selected vehicle is unpinned
-  ============================================================ */
   useEffect(() => {
     const prev = prevPinnedRef.current.map((v) => v.SerialNumber);
     const now = pinnedVehicles.map((v) => v.SerialNumber);
 
-    if (lastSelectedSerial && prev.includes(lastSelectedSerial) && !now.includes(lastSelectedSerial)) {
+    if (
+      lastSelectedSerial &&
+      prev.includes(lastSelectedSerial) &&
+      !now.includes(lastSelectedSerial)
+    ) {
       onVehicleUnpinned?.();
     }
 
     prevPinnedRef.current = pinnedVehicles;
-  }, [pinnedVehicles, lastSelectedSerial]);
+  }, [pinnedVehicles, lastSelectedSerial, onVehicleUnpinned]);
 
-  /* ============================================================
-     Initialize cluster group once
-  ============================================================ */
   useEffect(() => {
     if (!map || clusterRef.current) return;
 
     const cluster = L.markerClusterGroup({
       maxClusterRadius: 50,
-      spiderfyOnMaxZoom: true,
-      chunkedLoading: true,
-      zoomToBoundsOnClick: true,
+      spiderfyOnMaxZoom: false,
+      chunkedLoading: false,
+      zoomToBoundsOnClick: false,
     });
 
     map.addLayer(cluster);
     clusterRef.current = cluster;
+
+    // Cleanup on unmount
+    return () => {
+      if (clusterRef.current) {
+        map.removeLayer(clusterRef.current);
+        clusterRef.current = null;
+      }
+    };
   }, [map]);
 
-  /* ============================================================
-     Update markers efficiently (diff system)
-  ============================================================ */
+
   useEffect(() => {
     if (!clusterRef.current) return;
 
@@ -95,7 +99,7 @@ const MarkerCluster = ({
       const existing = currentMarkers[serial];
 
       if (existing) {
-        // Update position only if changed
+        // Update position
         const prevPos = existing.getLatLng();
         if (prevPos.lat !== pos[0] || prevPos.lng !== pos[1]) {
           existing.setLatLng(pos);
@@ -111,7 +115,7 @@ const MarkerCluster = ({
           existing._direction = direction;
         }
 
-        // Update popup ONLY if Speed changed
+        // Update popup only if speed changed
         const newContent = `<b>${serial}</b><br/>Speed: ${v.Speed} KM/H`;
         if (existing.getPopup().getContent() !== newContent) {
           existing.setPopupContent(newContent);
@@ -134,42 +138,90 @@ const MarkerCluster = ({
 
     if (removeList.length) cluster.removeLayers(removeList);
     if (addList.length) cluster.addLayers(addList);
-  }, [pinnedVehicles]);
+  }, [pinnedVehicles, onMarkerClick]);
 
-  /* ============================================================
-     Auto focus / zoom logic
-  ============================================================ */
+
   useEffect(() => {
     if (!map) return;
 
-    // 1) Focus selected vehicle
+    const markers = markersRef.current;
+    const prevSelected = prevSelectedRef.current;
+
+
+    prevSelectedRef.current = lastSelectedSerial;
+
     if (lastSelectedSerial) {
-      const marker = markersRef.current[lastSelectedSerial];
-      if (marker) {
+      const m = markers[lastSelectedSerial];
+
+      if (m) {
         map.closePopup();
-        marker.openPopup();
-        map.flyTo(marker.getLatLng(), 25, { animate: false });
+        m.openPopup();
+        map.flyTo(m.getLatLng(), 14, { animate: false });
       }
       return;
     }
 
-    // 2) Auto zoom when only one exists
+    if (prevSelected && !lastSelectedSerial) {
+      map.closePopup();
+
+
+      if (pinnedVehicles.length === 0) {
+        return;
+      } else if (pinnedVehicles.length === 1) {
+
+        const v = pinnedVehicles[0];
+        const m = markers[v.SerialNumber];
+        if (m) {
+          map.flyTo(m.getLatLng(), 14, { animate: false });
+        }
+        return;
+      } else {
+
+        const bounds = L.latLngBounds([]);
+        pinnedVehicles.forEach((v) => {
+          const m = markers[v.SerialNumber];
+
+
+          if (m) bounds.extend(m.getLatLng());
+        });
+
+        if (bounds.isValid()) {
+          map.flyToBounds(bounds, { padding: [50, 50], animate: false });
+        }
+        return;
+      }
+    }
+
     if (pinnedVehicles.length === 1) {
       const v = pinnedVehicles[0];
-      const marker = markersRef.current[v.SerialNumber];
-      if (marker) {
-        marker.openPopup();
-        map.flyTo(marker.getLatLng(), 25, { animate: true });
+      const m = markers[v.SerialNumber];
+      if (m) {
+        map.closePopup();
+        m.openPopup();
+        map.flyTo(m.getLatLng(), 14, { animate: false });
       }
       return;
     }
 
-    // 3) Just close popup when nothing pinned (preserve user's view)
+    if (pinnedVehicles.length > 1) {
+      const bounds = L.latLngBounds([]);
+      pinnedVehicles.forEach((v) => {
+        const m = markers[v.SerialNumber];
+        if (m) bounds.extend(m.getLatLng());
+      });
+
+      if (bounds.isValid()) {
+        map.closePopup();
+        map.flyToBounds(bounds, { padding: [50, 50], animate: false });
+      }
+      return;
+    }
+
     if (pinnedVehicles.length === 0) {
       map.closePopup();
-      // Removed automatic flyTo to preserve user's current map view
-     return;}
-  }, [lastSelectedSerial, pinnedVehicles]);
+      return;
+    }
+  }, [lastSelectedSerial, pinnedVehicles, map]);
 
   return null;
 };
